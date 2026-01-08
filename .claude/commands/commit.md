@@ -11,8 +11,8 @@ This command handles the workflow for committing changes on a branch.
 
 ### Step 0: Pre-commit Checks
 
-1. Run `mix test` to ensure tests pass
-2. Run `mix format --check-formatted` to ensure code is formatted
+1. Run `mix format` to ensure code is formatted
+2. Run `mix test` to ensure tests pass
 3. Fix ALL issues before proceeding
 
 ### Step 1: Analyze Changes
@@ -65,7 +65,7 @@ Closes #XXX
 
 **Key guidelines:**
 - Use present tense ("Adds", "Fixes", "Updates")
-- Subject line: Keep under 50 characters when possible
+- Subject line: **Always keep under 50 characters**
 - Body: Wrap at 72 characters per line
 - Be detailed and technical in the body
 - Include `Closes #XXX` only if an issue was detected/validated
