@@ -24,3 +24,6 @@ braintrust-*.tar
 
 # Keep granted permissions local to the person
 .claude/*.local.json
+
+# Local configuration and secrets
+.env

@@ -2,16 +2,13 @@ defmodule Braintrust do
   @moduledoc """
   Unofficial Elixir SDK for the [Braintrust](https://braintrust.dev) AI evaluation and observability platform.
 
-  > ⚠️ **Work in Progress** - This package is under active development.
-  > The API design is being finalized and functionality is not yet implemented.
-
   ## Installation
 
   Add `braintrust` to your list of dependencies in `mix.exs`:
 
       def deps do
         [
-          {:braintrust, "~> 0.0.1"}
+          {:braintrust, "~> 0.1.0"}
         ]
       end
 
@@ -24,7 +21,22 @@ defmodule Braintrust do
   Or configure in your application:
 
       # config/config.exs
-      config :braintrust, api_key: System.get_env("BRAINTRUST_API_KEY")
+      config :braintrust,
+        api_key: System.get_env("BRAINTRUST_API_KEY"),
+        timeout: 30_000
+
+  Or configure at runtime:
+
+      Braintrust.configure(api_key: "sk-your-api-key")
+
+  ## Usage
+
+  See the individual resource modules for API operations:
+
+  - `Braintrust.Project` - Manage projects (coming soon)
+  - `Braintrust.Experiment` - Run experiments (coming soon)
+  - `Braintrust.Dataset` - Manage datasets (coming soon)
+  - `Braintrust.Log` - Log traces and spans (coming soon)
 
   ## Resources
 
@@ -33,16 +45,31 @@ defmodule Braintrust do
   - [GitHub Repository](https://github.com/riddler/braintrust)
   """
 
+  alias Braintrust.Config
+
   @doc """
-  Placeholder function - SDK functionality coming soon.
+  Configures the Braintrust SDK for the current process.
+
+  Configuration set via this function takes precedence over application
+  config and environment variables, but is overridden by options passed
+  directly to API functions.
+
+  ## Options
+
+  - `:api_key` - API key for authentication (prefix: `sk-` or `bt-st-`)
+  - `:base_url` - Base URL for API (default: `https://api.braintrust.dev`)
+  - `:timeout` - Request timeout in milliseconds (default: 60000)
+  - `:max_retries` - Maximum retry attempts (default: 2)
 
   ## Examples
 
-      iex> Braintrust.hello()
-      :world
+      iex> Braintrust.configure(api_key: "sk-test123")
+      :ok
+
+      iex> Braintrust.configure(api_key: "sk-test", timeout: 30_000, max_retries: 3)
+      :ok
 
   """
-  def hello do
-    :world
-  end
+  @spec configure(keyword()) :: :ok
+  defdelegate configure(opts), to: Config
 end

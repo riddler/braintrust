@@ -19,12 +19,14 @@
 9. [Rate Limits](#rate-limits)
 10. [Error Handling](#error-handling)
 11. [Webhooks and Streaming](#webhooks-and-streaming)
-12. [Best Practices](#best-practices)
-13. [Existing SDKs and Resources](#existing-sdks-and-resources)
-14. [Alternatives Comparison](#alternatives-comparison)
-15. [Pricing](#pricing)
-16. [Suggested Hex Package Structure](#suggested-hex-package-structure)
-17. [Sources](#sources)
+12. [OpenTelemetry Integration](#opentelemetry-integration)
+13. [Best Practices](#best-practices)
+14. [Existing SDKs and Resources](#existing-sdks-and-resources)
+15. [Alternatives Comparison](#alternatives-comparison)
+16. [Pricing](#pricing)
+17. [Suggested Hex Package Structure](#suggested-hex-package-structure)
+18. [Elixir LangChain Integration](#elixir-langchain-integration)
+19. [Sources](#sources)
 
 ---
 
@@ -761,6 +763,188 @@ while retry_count < max_retries:
 
 ---
 
+## OpenTelemetry Integration
+
+Braintrust natively supports OpenTelemetry via OTLP (OpenTelemetry Protocol), implementing the OpenTelemetry GenAI semantic conventions. This provides an alternative to the REST API for sending traces, particularly useful for real-time observability of LLM calls.
+
+### OTEL Endpoint Configuration
+
+**Base Endpoint:**
+```
+https://api.braintrust.dev/otel
+```
+
+**Signal-Specific Endpoint:**
+```
+https://api.braintrust.dev/otel/v1/traces
+```
+
+**Self-Hosted:** If self-hosting Braintrust, replace `https://api.braintrust.dev` with your custom API URL.
+
+### Authentication Headers
+
+```
+Authorization: Bearer <Your API Key>
+x-bt-parent: <prefix>:<value>
+```
+
+**Parent Header Prefixes:**
+
+| Prefix | Description | Example |
+|--------|-------------|---------|
+| `project_id:` | Log to a project by ID | `project_id:abc123` |
+| `project_name:` | Log to a project by name | `project_name:my-project` |
+| `experiment_id:` | Log to an experiment by ID | `experiment_id:exp456` |
+
+### GenAI Semantic Conventions
+
+Braintrust automatically maps OTEL traces with GenAI attributes to its native format. The conventions follow the [OpenTelemetry GenAI specification](https://opentelemetry.io/docs/specs/semconv/gen-ai/).
+
+**Span Naming Convention:** `{gen_ai.operation.name} {gen_ai.request.model}`
+
+**Span Kind:** `CLIENT` (or `INTERNAL` for same-process models)
+
+#### Required Span Attributes
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `gen_ai.operation.name` | string | Operation type: `chat`, `text_completion`, `embeddings` |
+| `gen_ai.provider.name` | string | Provider: `openai`, `anthropic`, `azure`, `aws.bedrock`, etc. |
+
+#### Recommended Span Attributes
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `gen_ai.request.model` | string | Model name (e.g., `gpt-4`, `claude-3-opus`) |
+| `gen_ai.usage.input_tokens` | int | Input token count |
+| `gen_ai.usage.output_tokens` | int | Output token count |
+| `gen_ai.response.finish_reasons` | array | Finish reasons: `["stop"]`, `["length"]`, `["tool_calls"]` |
+| `gen_ai.response.id` | string | Unique response identifier |
+| `gen_ai.request.temperature` | double | Temperature parameter |
+| `gen_ai.request.max_tokens` | int | Max tokens parameter |
+| `gen_ai.request.top_p` | double | Top-p parameter |
+| `gen_ai.request.frequency_penalty` | double | Frequency penalty |
+| `gen_ai.request.presence_penalty` | double | Presence penalty |
+| `server.address` | string | GenAI server hostname |
+
+#### Opt-In Attributes (Sensitive Data)
+
+These should only be captured with explicit user consent:
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `gen_ai.input.messages` | array | Chat history in structured format |
+| `gen_ai.output.messages` | array | Model responses |
+| `gen_ai.system_instructions` | string | System prompts |
+| `gen_ai.tool.definitions` | array | Available tool specifications |
+
+**Recording Format:** On events, these MUST be structured. On spans, they MAY be JSON strings.
+
+### GenAI Events
+
+#### Inference Details Event
+
+**Name:** `event.gen_ai.client.inference.operation.details`
+
+Captures details of a GenAI completion request including chat history and parameters.
+
+#### Evaluation Event
+
+**Name:** `event.gen_ai.evaluation.result`
+
+Captures evaluation metrics for GenAI output quality.
+
+| Attribute | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `gen_ai.evaluation.name` | string | Yes | Metric name (e.g., "Relevance", "Accuracy") |
+| `gen_ai.evaluation.score.value` | double | No | Numerical score |
+| `gen_ai.evaluation.score.label` | string | No | Human-readable interpretation |
+| `gen_ai.evaluation.explanation` | string | No | Justification for the score |
+
+### Braintrust-Specific Attributes
+
+Use the `braintrust.*` namespace to set Braintrust fields directly. These attributes are translated into Braintrust's native format.
+
+### Elixir OTEL Configuration
+
+**Dependencies (add to `mix.exs`):**
+```elixir
+def deps do
+  [
+    {:opentelemetry_exporter, "~> 1.8"},
+    {:opentelemetry_api, "~> 1.2"},
+    {:opentelemetry, "~> 1.3"}
+  ]
+end
+```
+
+**Note:** Add `opentelemetry_exporter` before other opentelemetry dependencies so it starts first.
+
+**Configuration (`config/runtime.exs`):**
+```elixir
+config :opentelemetry,
+  span_processor: :batch,
+  traces_exporter: :otlp
+
+config :opentelemetry_exporter,
+  otlp_protocol: :http_protobuf,
+  otlp_endpoint: "https://api.braintrust.dev/otel",
+  otlp_headers: [
+    {"authorization", "Bearer #{System.fetch_env!("BRAINTRUST_API_KEY")}"},
+    {"x-bt-parent", "project_name:#{System.fetch_env!("BRAINTRUST_PROJECT_NAME")}"}
+  ]
+```
+
+**Alternative: Environment Variables:**
+```bash
+export OTEL_EXPORTER_OTLP_ENDPOINT=https://api.braintrust.dev/otel
+export OTEL_EXPORTER_OTLP_HEADERS="authorization=Bearer sk-xxx, x-bt-parent=project_name:my-project"
+```
+
+**Protocol Options:**
+- `:http_protobuf` (default, recommended)
+- `:grpc`
+- `:http_json`
+
+### Elixir-Specific Considerations
+
+1. **Application Startup:** OpenTelemetry SDK starts its supervision tree on boot; configure via application config or environment variables
+2. **Release Configuration:** Set `opentelemetry` to `:temporary` so crashes don't terminate other applications:
+   ```elixir
+   def project do
+     [
+       releases: [
+         my_app: [
+           applications: [
+             opentelemetry_exporter: :permanent,
+             opentelemetry: :temporary
+           ]
+         ]
+       ]
+     ]
+   end
+   ```
+3. **Context Propagation:** Use `otel_propagator_text_map:inject/1` and `extract/1` for distributed tracing
+4. **Development:** Use stdout exporter for verification:
+   ```elixir
+   # config/dev.exs
+   config :opentelemetry, traces_exporter: {:otel_exporter_stdout, []}
+   ```
+
+### REST API vs. OpenTelemetry
+
+| Aspect | REST API | OpenTelemetry |
+|--------|----------|---------------|
+| **Best for** | CRUD operations, batch inserts | Real-time trace streaming |
+| **Protocol** | HTTP/JSON | OTLP (protobuf/gRPC/HTTP) |
+| **Span management** | Manual via SDK | Automatic via OTEL SDK |
+| **Integration** | Braintrust-specific | Universal observability |
+| **Elixir support** | Custom client | `opentelemetry_exporter` |
+
+**Recommendation:** Use REST API for resource management (projects, experiments, datasets) and OpenTelemetry for real-time LLM observability.
+
+---
+
 ## Best Practices
 
 ### Authentication
@@ -995,9 +1179,14 @@ braintrust/
 │       ├── project.ex             # %Braintrust.Project{} + CRUD functions
 │       ├── experiment.ex          # %Braintrust.Experiment{} + functions
 │       ├── dataset.ex             # %Braintrust.Dataset{} + functions
-│       ├── log.ex                 # Logging API (Span/Trace structs embedded or separate)
+│       ├── log.ex                 # Logging API (Span/Trace structs embedded)
 │       ├── prompt.ex              # %Braintrust.Prompt{} + functions
-│       └── function.ex            # %Braintrust.Function{} + functions
+│       ├── function.ex            # %Braintrust.Function{} + functions
+│       │
+│       └── otel/                  # OpenTelemetry integration (optional)
+│           ├── config.ex          # OTEL exporter configuration helpers
+│           ├── genai.ex           # GenAI semantic convention helpers
+│           └── span_builder.ex    # Convenience functions for creating GenAI spans
 │
 ├── test/
 │   ├── braintrust_test.exs
@@ -1127,6 +1316,133 @@ case Braintrust.Project.get(invalid_id) do
 end
 ```
 
+### OpenTelemetry Integration API
+
+```elixir
+# Dependencies for OTEL support (add to mix.exs)
+{:opentelemetry_exporter, "~> 1.8"},
+{:opentelemetry_api, "~> 1.2"},
+{:opentelemetry, "~> 1.3"}
+
+# Helper module for creating GenAI spans
+defmodule Braintrust.OTEL.GenAI do
+  @moduledoc """
+  OpenTelemetry helpers for Braintrust GenAI tracing.
+
+  Implements OpenTelemetry GenAI semantic conventions for automatic
+  mapping to Braintrust's native format.
+  """
+
+  require OpenTelemetry.Tracer, as: Tracer
+
+  @doc """
+  Wraps an LLM call with proper GenAI span attributes.
+
+  ## Options
+
+  - `:operation` - Operation type (default: "chat")
+  - `:temperature` - Temperature parameter
+  - `:max_tokens` - Max tokens parameter
+  - `:top_p` - Top-p parameter
+
+  ## Example
+
+      Braintrust.OTEL.GenAI.with_llm_span("gpt-4", :openai, fn ->
+        OpenAI.chat_completion(messages)
+      end)
+
+      # With options
+      Braintrust.OTEL.GenAI.with_llm_span("claude-3-opus", :anthropic,
+        temperature: 0.7,
+        max_tokens: 1000,
+        fn -> Anthropic.messages(params) end
+      )
+  """
+  @spec with_llm_span(String.t(), atom(), keyword(), (-> result)) :: result when result: term()
+  def with_llm_span(model, provider, opts \\ [], fun) do
+    span_name = "#{Keyword.get(opts, :operation, "chat")} #{model}"
+
+    Tracer.with_span span_name, %{kind: :client} do
+      Tracer.set_attributes([
+        {"gen_ai.operation.name", Keyword.get(opts, :operation, "chat")},
+        {"gen_ai.provider.name", to_string(provider)},
+        {"gen_ai.request.model", model},
+        {"gen_ai.request.temperature", Keyword.get(opts, :temperature)},
+        {"gen_ai.request.max_tokens", Keyword.get(opts, :max_tokens)},
+        {"gen_ai.request.top_p", Keyword.get(opts, :top_p)}
+      ] |> reject_nil_values())
+
+      result = fun.()
+
+      # Set response attributes if result contains usage info
+      set_usage_attributes(result)
+
+      result
+    end
+  end
+
+  @doc """
+  Sets token usage attributes on the current span.
+
+  ## Example
+
+      Braintrust.OTEL.GenAI.set_usage(input_tokens: 50, output_tokens: 100)
+  """
+  @spec set_usage(keyword()) :: :ok
+  def set_usage(opts) do
+    Tracer.set_attributes([
+      {"gen_ai.usage.input_tokens", Keyword.get(opts, :input_tokens)},
+      {"gen_ai.usage.output_tokens", Keyword.get(opts, :output_tokens)}
+    ] |> reject_nil_values())
+  end
+
+  @doc """
+  Sets evaluation score on current span.
+
+  ## Example
+
+      Braintrust.OTEL.GenAI.set_evaluation("accuracy", 0.95,
+        explanation: "Response matched expected output"
+      )
+  """
+  @spec set_evaluation(String.t(), float(), keyword()) :: :ok
+  def set_evaluation(name, score, opts \\ []) do
+    Tracer.set_attributes([
+      {"gen_ai.evaluation.name", name},
+      {"gen_ai.evaluation.score.value", score},
+      {"gen_ai.evaluation.score.label", Keyword.get(opts, :label)},
+      {"gen_ai.evaluation.explanation", Keyword.get(opts, :explanation)}
+    ] |> reject_nil_values())
+  end
+
+  @doc """
+  Sets finish reasons on the current span.
+
+  ## Example
+
+      Braintrust.OTEL.GenAI.set_finish_reasons(["stop"])
+  """
+  @spec set_finish_reasons([String.t()]) :: :ok
+  def set_finish_reasons(reasons) when is_list(reasons) do
+    Tracer.set_attributes([
+      {"gen_ai.response.finish_reasons", Jason.encode!(reasons)}
+    ])
+  end
+
+  defp reject_nil_values(attrs) do
+    Enum.reject(attrs, fn {_, v} -> is_nil(v) end)
+  end
+
+  defp set_usage_attributes(%{usage: usage}) when is_map(usage) do
+    set_usage(
+      input_tokens: Map.get(usage, :prompt_tokens) || Map.get(usage, :input_tokens),
+      output_tokens: Map.get(usage, :completion_tokens) || Map.get(usage, :output_tokens)
+    )
+  end
+  defp set_usage_attributes(_), do: :ok
+end
+```
+
 ### Key Implementation Considerations
 
 1. **Use Req for HTTP** - Modern HTTP client with built-in retry support
@@ -1136,6 +1452,9 @@ end
 5. **Comprehensive specs** - Add `@spec` to all public functions
 6. **Config flexibility** - Support both compile-time and runtime configuration
 7. **Single Error struct** - Use `%Braintrust.Error{type: atom()}` pattern, not separate error modules
+8. **OTEL as optional feature** - Provide OpenTelemetry integration as opt-in module with optional deps
+9. **GenAI semantic conventions** - Follow OTEL GenAI specs for interoperability with other observability tools
+10. **Dual logging support** - Allow users to choose REST API or OpenTelemetry for tracing based on use case
 
 ---
 
@@ -1165,6 +1484,621 @@ The structure above was updated based on research of idiomatic Elixir patterns:
 - [Elixir Naming Conventions](https://hexdocs.pm/elixir/naming-conventions.html)
 - [Elixir Structs Documentation](https://hexdocs.pm/elixir/structs.html)
 - [Elixir modules, files, directories, and naming conventions](https://ulisses.dev/elixir/2022/03/04/elixir-modules-files-directories-and-naming-conventions.html)
+
+---
+
+## Elixir LangChain Integration
+
+The [Elixir LangChain](https://github.com/brainlid/langchain) library (v0.4.1, Dec 2025) provides a framework for integrating AI services into Elixir applications. Unlike the Python/JavaScript versions, Elixir LangChain embraces functional programming patterns. The Braintrust Hex package can integrate with LangChain via its callback system for seamless observability.
+
+### LangChain Overview
+
+**Package:** `{:langchain, "~> 0.4"}`
+
+**Key Modules:**
+- `LangChain.Chains.LLMChain` - Primary orchestration module
+- `LangChain.ChatModels.*` - Provider integrations (OpenAI, Anthropic, Google, etc.)
+- `LangChain.Function` - Tool/function calling bridge
+- `LangChain.Message` / `LangChain.MessageDelta` - Message structures
+
+**Supported Providers:** OpenAI, Anthropic Claude, xAI Grok, Google Gemini, Ollama, self-hosted Bumblebee models.
+
+### ChainCallbacks System
+
+LangChain provides a callback system via `LangChain.Chains.ChainCallbacks`. Callbacks are maps of event names to handler functions. All callback return values are discarded; use side effects for integration.
+
+#### Available Callbacks
+
+| Callback | Signature | Description |
+|----------|-----------|-------------|
+| `on_llm_new_delta` | `(LLMChain.t(), [MessageDelta.t()] -> any())` | Streaming tokens received |
+| `on_llm_new_message` | `(LLMChain.t(), Message.t() -> any())` | Complete non-streamed message received |
+| `on_llm_token_usage` | `(LLMChain.t(), TokenUsage.t() -> any())` | Token usage data reported |
+| `on_llm_ratelimit_info` | `(LLMChain.t(), info :: map() -> any())` | Rate limiting info received |
+| `on_llm_response_headers` | `(LLMChain.t(), headers :: map() -> any())` | HTTP response headers received |
+| `on_message_processed` | `(LLMChain.t(), Message.t() -> any())` | LLMChain finished processing message |
+| `on_message_processing_error` | `(LLMChain.t(), Message.t() -> any())` | Message processing failed |
+| `on_error_message_created` | `(LLMChain.t(), Message.t() -> any())` | Chain generated automated error response |
+| `on_tool_response_created` | `(LLMChain.t(), Message.t() -> any())` | Tool execution generated results |
+| `on_retries_exceeded` | `(LLMChain.t() -> any())` | `max_retry_count` exhausted |
+
+### Key Data Structures
+
+#### TokenUsage
+
+```elixir
+%LangChain.TokenUsage{
+  input: integer(),        # Input/prompt tokens
+  output: integer(),       # Output/completion tokens
+  raw: map(),              # LLM-specific usage data
+  cumulative: [term()]     # Accumulated across multiple calls
+}
+```
+
+**Helper functions:**
+- `TokenUsage.total/1` - Returns sum of input + output
+- `TokenUsage.add/2` - Combines two TokenUsage structs
+- `TokenUsage.get/1` - Extracts usage from Message/MessageDelta metadata
+- `TokenUsage.set/2` - Stores usage in message metadata
+
+#### Message
+
+```elixir
+%LangChain.Message{
+  role: :system | :user | :assistant | :tool,
+  content: String.t() | [ContentPart.t()],
+  tool_calls: [ToolCall.t()],
+  tool_results: [ToolResult.t()],
+  processed_content: term(),
+  status: :complete | :cancelled | :length,
+  metadata: map(),
+  name: String.t(),
+  index: integer()
+}
+```
+
+#### MessageDelta (Streaming)
+
+```elixir
+%LangChain.MessageDelta{
+  content: String.t() | ContentPart.t() | [],
+  merged_content: [ContentPart.t()],
+  role: :unknown | :assistant,
+  metadata: map(),           # Contains token usage, model info
+  tool_calls: [ToolCall.t()],
+  status: :incomplete | :complete,
+  index: integer()
+}
+```
+
+Deltas arrive sequentially and are merged via `MessageDelta.merge_delta/2`. When `status: :complete`, convert to Message via `MessageDelta.to_message/1`.
+
+#### LLMChain (Relevant Fields)
+
+```elixir
+%LLMChain{
+  llm: ChatModel.t(),                 # Configured LLM
+  messages: [Message.t()],            # All messages exchanged
+  last_message: Message.t(),          # Most recent LLM message
+  delta: MessageDelta.t(),            # Current merged delta state
+  callbacks: [map()],                 # Registered callback handlers
+  tools: [Function.t()],              # Available tools
+  custom_context: map(),              # User-defined context
+  current_failure_count: integer(),   # Retry tracking
+  max_retry_count: integer(),         # Max retries allowed
+  verbose: boolean()                  # Logging verbosity
+}
+```
+
+### Braintrust Integration Strategy
+
+The Braintrust Hex package can provide a pre-built callback handler that automatically logs LLM interactions to Braintrust.
+
+#### Integration Architecture
+
+```
+┌─────────────────────┐     callbacks     ┌──────────────────────┐
+│   LangChain         │──────────────────▶│  Braintrust          │
+│   LLMChain          │                   │  CallbackHandler     │
+└─────────────────────┘                   └──────────┬───────────┘
+                                                     │
+                                          ┌──────────▼───────────┐
+                                          │  Braintrust.Log      │
+                                          │  (REST API or OTEL)  │
+                                          └──────────────────────┘
+```
+
+#### Callback Handler Implementation
+
+```elixir
+defmodule Braintrust.LangChain do
+  @moduledoc """
+  LangChain callback handler for Braintrust observability.
+
+  Automatically logs LLM interactions to Braintrust when used with
+  LangChain's LLMChain.
+
+  ## Usage
+
+      alias LangChain.Chains.LLMChain
+      alias Braintrust.LangChain, as: BraintrustCallbacks
+
+      chain =
+        %{llm: ChatOpenAI.new!(%{model: "gpt-4"})}
+        |> LLMChain.new!()
+        |> LLMChain.add_callback(BraintrustCallbacks.handler(project_id: "proj_xxx"))
+        |> LLMChain.add_messages([...])
+        |> LLMChain.run()
+
+  ## Options
+
+  - `:project_id` - Braintrust project ID (required)
+  - `:metadata` - Additional metadata to attach to all spans
+  - `:tags` - Tags to attach to top-level spans
+  - `:async` - Send logs asynchronously (default: true)
+  - `:batch` - Batch multiple events before sending (default: true)
+  """
+
+  alias LangChain.Chains.LLMChain
+  alias LangChain.{Message, MessageDelta, TokenUsage}
+
+  @type handler_opts :: [
+    project_id: String.t(),
+    metadata: map(),
+    tags: [String.t()],
+    async: boolean(),
+    batch: boolean()
+  ]
+
+  @doc """
+  Creates a callback handler map for use with LLMChain.
+
+  ## Example
+
+      BraintrustCallbacks.handler(project_id: "proj_xxx")
+      # => %{on_llm_new_message: fn..., on_llm_token_usage: fn..., ...}
+  """
+  @spec handler(handler_opts()) :: map()
+  def handler(opts \\ []) do
+    project_id = Keyword.fetch!(opts, :project_id)
+    base_metadata = Keyword.get(opts, :metadata, %{})
+    tags = Keyword.get(opts, :tags, [])
+
+    # Store span context in process dictionary for correlation
+    %{
+      on_llm_new_message: fn chain, message ->
+        log_message(project_id, chain, message, base_metadata, tags)
+      end,
+
+      on_llm_token_usage: fn chain, usage ->
+        store_usage(usage)
+      end,
+
+      on_message_processed: fn chain, message ->
+        log_processed_message(project_id, chain, message, base_metadata, tags)
+      end,
+
+      on_message_processing_error: fn chain, message ->
+        log_error(project_id, chain, message, base_metadata, tags)
+      end,
+
+      on_tool_response_created: fn chain, message ->
+        log_tool_execution(project_id, chain, message, base_metadata, tags)
+      end,
+
+      on_retries_exceeded: fn chain ->
+        log_retries_exceeded(project_id, chain, base_metadata, tags)
+      end
+    }
+  end
+
+  @doc """
+  Creates a streaming-aware callback handler that logs deltas.
+
+  Use this when you need fine-grained streaming observability.
+  """
+  @spec streaming_handler(handler_opts()) :: map()
+  def streaming_handler(opts \\ []) do
+    base_handler = handler(opts)
+
+    Map.merge(base_handler, %{
+      on_llm_new_delta: fn chain, deltas ->
+        # Track streaming progress, time-to-first-token, etc.
+        track_streaming_deltas(chain, deltas)
+      end
+    })
+  end
+
+  # Private implementation functions
+
+  defp log_message(project_id, chain, message, metadata, tags) do
+    model = get_model_name(chain)
+
+    Braintrust.Log.insert(project_id, %{
+      events: [
+        %{
+          input: format_input(chain),
+          output: format_output(message),
+          scores: %{},
+          metadata: Map.merge(metadata, %{
+            "model" => model,
+            "role" => to_string(message.role),
+            "status" => to_string(message.status),
+            "langchain_version" => langchain_version()
+          }),
+          metrics: build_metrics(message),
+          tags: tags
+        }
+      ]
+    })
+  end
+
+  defp log_processed_message(project_id, chain, message, metadata, tags) do
+    usage = get_stored_usage()
+    model = get_model_name(chain)
+
+    Braintrust.Log.insert(project_id, %{
+      events: [
+        %{
+          input: format_input(chain),
+          output: format_output(message),
+          scores: %{},
+          metadata: Map.merge(metadata, %{
+            "model" => model,
+            "processed" => true,
+            "tool_calls" => length(message.tool_calls || [])
+          }),
+          metrics: %{
+            "input_tokens" => usage && usage.input,
+            "output_tokens" => usage && usage.output,
+            "total_tokens" => usage && TokenUsage.total(usage)
+          } |> reject_nil_values(),
+          tags: tags
+        }
+      ]
+    })
+  end
+
+  defp log_error(project_id, chain, message, metadata, tags) do
+    Braintrust.Log.insert(project_id, %{
+      events: [
+        %{
+          input: format_input(chain),
+          output: format_output(message),
+          error: "Message processing error",
+          metadata: Map.merge(metadata, %{
+            "error" => true,
+            "status" => to_string(message.status)
+          }),
+          tags: ["error" | tags]
+        }
+      ]
+    })
+  end
+
+  defp log_tool_execution(project_id, chain, message, metadata, tags) do
+    Braintrust.Log.insert(project_id, %{
+      events: [
+        %{
+          input: %{"tool_results" => message.tool_results},
+          output: format_output(message),
+          metadata: Map.merge(metadata, %{
+            "span_type" => "tool",
+            "tool_count" => length(message.tool_results || [])
+          }),
+          tags: ["tool" | tags]
+        }
+      ]
+    })
+  end
+
+  defp log_retries_exceeded(project_id, chain, metadata, tags) do
+    Braintrust.Log.insert(project_id, %{
+      events: [
+        %{
+          input: format_input(chain),
+          output: nil,
+          error: "Max retries exceeded",
+          metadata: Map.merge(metadata, %{
+            "max_retry_count" => chain.max_retry_count,
+            "failure_count" => chain.current_failure_count
+          }),
+          tags: ["error", "retries_exceeded" | tags]
+        }
+      ]
+    })
+  end
+
+  defp track_streaming_deltas(_chain, deltas) do
+    # Track time-to-first-token, streaming metrics
+    Enum.each(deltas, fn delta ->
+      if is_nil(Process.get(:braintrust_first_token_time)) do
+        Process.put(:braintrust_first_token_time, System.monotonic_time(:millisecond))
+      end
+      Process.put(:braintrust_last_delta, delta)
+    end)
+  end
+
+  defp store_usage(usage) do
+    Process.put(:braintrust_token_usage, usage)
+  end
+
+  defp get_stored_usage do
+    Process.get(:braintrust_token_usage)
+  end
+
+  defp get_model_name(chain) do
+    case chain.llm do
+      %{model: model} -> model
+      _ -> "unknown"
+    end
+  end
+
+  defp format_input(chain) do
+    %{
+      "messages" => Enum.map(chain.messages, fn msg ->
+        %{
+          "role" => to_string(msg.role),
+          "content" => format_content(msg.content)
+        }
+      end)
+    }
+  end
+
+  defp format_output(message) do
+    format_content(message.content)
+  end
+
+  defp format_content(content) when is_binary(content), do: content
+  defp format_content(content) when is_list(content) do
+    Enum.map(content, &format_content_part/1)
+  end
+  defp format_content(content), do: inspect(content)
+
+  defp format_content_part(%{type: :text, content: text}), do: text
+  defp format_content_part(%{type: type} = part), do: %{"type" => type, "data" => "[...]"}
+  defp format_content_part(other), do: inspect(other)
+
+  defp build_metrics(message) do
+    case TokenUsage.get(message) do
+      %TokenUsage{} = usage ->
+        %{
+          "input_tokens" => usage.input,
+          "output_tokens" => usage.output,
+          "total_tokens" => TokenUsage.total(usage)
+        } |> reject_nil_values()
+      _ ->
+        %{}
+    end
+  end
+
+  defp reject_nil_values(map) do
+    Map.reject(map, fn {_, v} -> is_nil(v) end)
+  end
+
+  defp langchain_version do
+    Application.spec(:langchain, :vsn) |> to_string()
+  end
+end
+```
+
+#### Usage Examples
+
+**Basic Usage:**
+
+```elixir
+alias LangChain.Chains.LLMChain
+alias LangChain.ChatModels.ChatOpenAI
+alias LangChain.Message
+alias Braintrust.LangChain, as: BraintrustCallbacks
+
+# Create chain with Braintrust observability
+{:ok, chain} =
+  %{llm: ChatOpenAI.new!(%{model: "gpt-4", stream: false})}
+  |> LLMChain.new!()
+  |> LLMChain.add_callback(BraintrustCallbacks.handler(
+    project_id: "proj_xxx",
+    metadata: %{"environment" => "production"},
+    tags: ["chat", "support"]
+  ))
+  |> LLMChain.add_message(Message.new_system!("You are a helpful assistant."))
+  |> LLMChain.add_message(Message.new_user!("Hello!"))
+  |> LLMChain.run()
+
+# All LLM interactions automatically logged to Braintrust
+```
+
+**Streaming with Fine-Grained Tracking:**
+
+```elixir
+# Use streaming handler for time-to-first-token metrics
+{:ok, chain} =
+  %{llm: ChatOpenAI.new!(%{model: "gpt-4", stream: true})}
+  |> LLMChain.new!()
+  |> LLMChain.add_callback(BraintrustCallbacks.streaming_handler(
+    project_id: "proj_xxx",
+    tags: ["streaming"]
+  ))
+  |> LLMChain.add_messages([...])
+  |> LLMChain.run()
+```
+
+**With Tool Calls:**
+
+```elixir
+alias LangChain.Function
+
+# Define a tool
+weather_tool = Function.new!(%{
+  name: "get_weather",
+  description: "Get current weather for a location",
+  parameters_schema: %{
+    type: "object",
+    properties: %{
+      location: %{type: "string", description: "City name"}
+    },
+    required: ["location"]
+  },
+  function: fn %{"location" => loc}, _context ->
+    {:ok, "Sunny, 72°F in #{loc}"}
+  end
+})
+
+{:ok, chain} =
+  %{llm: ChatOpenAI.new!(%{model: "gpt-4"})}
+  |> LLMChain.new!()
+  |> LLMChain.add_tools([weather_tool])
+  |> LLMChain.add_callback(BraintrustCallbacks.handler(project_id: "proj_xxx"))
+  |> LLMChain.add_message(Message.new_user!("What's the weather in Tokyo?"))
+  |> LLMChain.run(while_needs_response: true)
+
+# Tool executions are logged as separate spans with tool metadata
+```
+
+**Phoenix LiveView Integration:**
+
+```elixir
+defmodule MyAppWeb.ChatLive do
+  use MyAppWeb, :live_view
+
+  alias LangChain.Chains.LLMChain
+  alias LangChain.ChatModels.ChatOpenAI
+  alias Braintrust.LangChain, as: BraintrustCallbacks
+
+  def handle_event("send_message", %{"message" => content}, socket) do
+    live_view_pid = self()
+
+    # Combine Braintrust logging with LiveView updates
+    handlers = %{
+      on_llm_new_delta: fn _chain, deltas ->
+        Enum.each(deltas, fn delta ->
+          send(live_view_pid, {:delta, delta})
+        end)
+      end,
+      on_message_processed: fn _chain, message ->
+        send(live_view_pid, {:complete, message})
+      end
+    }
+
+    braintrust_handler = BraintrustCallbacks.streaming_handler(
+      project_id: socket.assigns.project_id
+    )
+
+    Task.start(fn ->
+      %{llm: ChatOpenAI.new!(%{model: "gpt-4", stream: true})}
+      |> LLMChain.new!()
+      |> LLMChain.add_callback(handlers)
+      |> LLMChain.add_callback(braintrust_handler)
+      |> LLMChain.add_messages(socket.assigns.messages)
+      |> LLMChain.run()
+    end)
+
+    {:noreply, socket}
+  end
+end
+```
+
+### OpenTelemetry + LangChain + Braintrust
+
+For comprehensive observability, combine LangChain callbacks with OpenTelemetry:
+
+```elixir
+defmodule Braintrust.LangChain.OTEL do
+  @moduledoc """
+  LangChain callbacks that emit OpenTelemetry spans.
+
+  Use this when you want traces to flow through your existing
+  OTEL infrastructure and into Braintrust via OTLP.
+  """
+
+  require OpenTelemetry.Tracer, as: Tracer
+
+  def handler(opts \\ []) do
+    %{
+      on_llm_new_message: fn chain, message ->
+        model = get_model_name(chain)
+        span_name = "chat #{model}"
+
+        Tracer.with_span span_name, %{kind: :client} do
+          Tracer.set_attributes([
+            {"gen_ai.operation.name", "chat"},
+            {"gen_ai.provider.name", get_provider(chain)},
+            {"gen_ai.request.model", model}
+          ])
+
+          # Usage will be set by on_llm_token_usage callback
+        end
+      end,
+
+      on_llm_token_usage: fn _chain, usage ->
+        Tracer.set_attributes([
+          {"gen_ai.usage.input_tokens", usage.input},
+          {"gen_ai.usage.output_tokens", usage.output}
+        ])
+      end,
+
+      on_message_processing_error: fn chain, message ->
+        Tracer.set_status(:error, "Message processing error")
+        Tracer.set_attributes([
+          {"error", true},
+          {"error.message", inspect(message.content)}
+        ])
+      end
+    }
+  end
+
+  defp get_model_name(chain) do
+    case chain.llm do
+      %{model: model} -> model
+      _ -> "unknown"
+    end
+  end
+
+  defp get_provider(chain) do
+    chain.llm.__struct__
+    |> Module.split()
+    |> List.last()
+    |> String.replace("Chat", "")
+    |> String.downcase()
+  end
+end
+```
+
+### Design Considerations
+
+1. **Callback Isolation:** LangChain discards callback return values. Use side effects (logging, message passing) only.
+
+2. **Process Dictionary for Correlation:** Use `Process.put/2` to correlate data across callbacks (e.g., token usage from `on_llm_token_usage` with message from `on_message_processed`).
+
+3. **Async Logging:** Default to async log submission to avoid blocking LLM response handling.
+
+4. **Streaming Metrics:** The `on_llm_new_delta` callback enables time-to-first-token and streaming throughput metrics.
+
+5. **Tool Span Hierarchy:** Log tool executions as child spans of the parent LLM call for proper trace visualization.
+
+6. **Multiple Callbacks:** LangChain allows multiple callback handlers. Users can combine Braintrust callbacks with their own application-specific handlers.
+
+### Suggested Module Structure Addition
+
+```
+lib/braintrust/
+├── ...existing modules...
+├── langchain.ex              # %Braintrust.LangChain - REST API callbacks
+└── langchain/
+    └── otel.ex               # %Braintrust.LangChain.OTEL - OTEL callbacks
+```
+
+### LangChain Sources
+
+- [LangChain Elixir GitHub](https://github.com/brainlid/langchain)
+- [LangChain Hex Package](https://hex.pm/packages/langchain)
+- [ChainCallbacks Documentation](https://hexdocs.pm/langchain/LangChain.Chains.ChainCallbacks.html)
+- [LLMChain Documentation](https://hexdocs.pm/langchain/LangChain.Chains.LLMChain.html)
+- [TokenUsage Documentation](https://hexdocs.pm/langchain/LangChain.TokenUsage.html)
+- [Message Documentation](https://hexdocs.pm/langchain/LangChain.Message.html)
+- [MessageDelta Documentation](https://hexdocs.pm/langchain/LangChain.MessageDelta.html)
+- [LangChain Demo Project](https://github.com/brainlid/langchain_demo)
+- [Getting Started Guide](https://hexdocs.pm/langchain/getting_started.html)
 
 ---
 
@@ -1220,3 +2154,13 @@ The structure above was updated based on research of idiomatic Elixir patterns:
 - [Pricing](https://www.braintrust.dev/pricing)
 - [The three pillars of AI observability](https://www.braintrust.dev/blog/three-pillars-ai-observability)
 - [Organizations Documentation](https://www.braintrust.dev/docs/reference/organizations)
+
+### OpenTelemetry Integration
+- [Braintrust OpenTelemetry Documentation](https://www.braintrust.dev/docs/integrations/sdk-integrations/opentelemetry)
+- [Braintrust OTEL Logging Cookbook](https://www.braintrust.dev/docs/cookbook/recipes/OTEL-logging)
+- [OpenTelemetry GenAI Semantic Conventions](https://opentelemetry.io/docs/specs/semconv/gen-ai/)
+- [OpenTelemetry GenAI Client Spans](https://opentelemetry.io/docs/specs/semconv/gen-ai/gen-ai-spans/)
+- [OpenTelemetry GenAI Events](https://opentelemetry.io/docs/specs/semconv/gen-ai/gen-ai-events/)
+- [OpenTelemetry Erlang/Elixir Documentation](https://opentelemetry.io/docs/languages/erlang/)
+- [opentelemetry_exporter Hex Documentation](https://hexdocs.pm/opentelemetry_exporter/)
+- [Integrating OpenTelemetry with Elixir (Last9)](https://last9.io/blog/opentelemetry-with-elixir/)
