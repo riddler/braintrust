@@ -48,9 +48,7 @@ Attempt to detect a related GitHub issue using these strategies in order:
 4. **Fallback to user prompt**:
    - If no valid issue detected, ask: "Is this commit related to a GitHub issue? (Enter issue number or press Enter to skip)"
 
-### Step 3: Prepare CHANGELOG Entry
-
-If CHANGELOG.md exists and follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format:
+### Step 3: Prepare CHANGELOG.md Entry
 
 1. **Categorize the changes** into appropriate sections:
    - **Added** - New features or functionality
