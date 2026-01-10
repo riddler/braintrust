@@ -1,6 +1,6 @@
 # Braintrust
 
-> ⚠️ **Work in Progress** - This package is under active development. Projects, Experiments, Datasets, Logs, and Prompts APIs are now functional. Functions coming soon.
+> ⚠️ **Work in Progress** - This package is under active development. Projects, Experiments, Datasets, Logs, Prompts, and Functions APIs are now functional.
 
 An unofficial Elixir client for the [Braintrust](https://braintrust.dev) AI evaluation and observability platform.
 
@@ -204,6 +204,55 @@ Braintrust.Prompt.stream(project_id: "proj_123")
 |> Enum.to_list()
 ```
 
+### Functions
+
+Manage tools, scorers, and callable functions:
+
+```elixir
+# List all functions
+{:ok, functions} = Braintrust.Function.list()
+
+# List scorers for a specific project
+{:ok, scorers} = Braintrust.Function.list(
+  project_id: "proj_123",
+  function_type: "scorer"
+)
+
+# Create a code-based scorer
+{:ok, scorer} = Braintrust.Function.create(%{
+  project_id: "proj_123",
+  name: "relevance-scorer",
+  slug: "relevance-scorer-v1",
+  function_type: "scorer",
+  function_data: %{
+    type: "code",
+    data: %{
+      runtime: "node",
+      code: "export default async function({ input, output, expected }) {
+        // Scoring logic here
+        return { score: 0.9 };
+      }"
+    }
+  }
+})
+
+# Get a function by ID
+{:ok, func} = Braintrust.Function.get(function_id)
+
+# Get a specific version
+{:ok, func} = Braintrust.Function.get(function_id, version: "v2")
+
+# Update a function
+{:ok, func} = Braintrust.Function.update(function_id, %{
+  description: "Updated relevance scorer with better accuracy"
+})
+
+# Stream through functions
+Braintrust.Function.stream(function_type: "tool")
+|> Stream.take(50)
+|> Enum.to_list()
+```
+
 ### Error Handling
 
 All API functions return `{:ok, result}` or `{:error, %Braintrust.Error{}}`:
@@ -249,7 +298,7 @@ end
 | Datasets | `/v1/dataset` | ✅ Implemented |
 | Logs | `/v1/project_logs` | ✅ Implemented |
 | Prompts | `/v1/prompt` | ✅ Implemented |
-| Functions | `/v1/function` | 🚧 Planned |
+| Functions | `/v1/function` | ✅ Implemented |
 | BTQL | `/btql` | 🚧 Planned |
 
 ## Resources
