@@ -174,24 +174,40 @@ defmodule Braintrust.Client do
 
   defp extract_message(body) when is_map(body) do
     # Braintrust error format: {"error": {"message": "...", "type": "...", "code": "..."}}
-    get_in(body, ["error", "message"]) ||
-      body["message"] ||
-      body["error"] ||
-      "Request failed"
+    cond do
+      # Nested error object with message
+      is_map(body["error"]) and is_binary(body["error"]["message"]) ->
+        body["error"]["message"]
+
+      # Simple message field
+      is_binary(body["message"]) ->
+        body["message"]
+
+      # Error field is a string
+      is_binary(body["error"]) ->
+        body["error"]
+
+      true ->
+        "Request failed"
+    end
   end
 
   defp extract_message(body) when is_binary(body), do: body
   defp extract_message(_), do: "Request failed"
 
   defp extract_code(body) when is_map(body) do
-    get_in(body, ["error", "code"]) || body["code"]
+    if is_map(body["error"]) do
+      body["error"]["code"]
+    else
+      body["code"]
+    end
   end
 
   defp extract_code(_), do: nil
 
-  defp extract_retry_after(headers) do
-    case List.keyfind(headers, "retry-after", 0) do
-      {"retry-after", value} ->
+  defp extract_retry_after(headers) when is_map(headers) do
+    case Map.get(headers, "retry-after") do
+      [value | _] when is_binary(value) ->
         case Integer.parse(value) do
           {seconds, _} -> seconds * 1000
           :error -> nil
@@ -201,6 +217,8 @@ defmodule Braintrust.Client do
         nil
     end
   end
+
+  defp extract_retry_after(_), do: nil
 
   defp retry_policy(_request, response_or_error) do
     case response_or_error do

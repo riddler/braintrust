@@ -16,7 +16,14 @@ defmodule Braintrust.MixProject do
       docs: docs(),
       name: "Braintrust",
       source_url: @source_url,
-      homepage_url: "https://braintrust.dev"
+      homepage_url: "https://braintrust.dev",
+      test_coverage: [tool: ExCoveralls],
+      preferred_cli_env: [
+        coveralls: :test,
+        "coveralls.detail": :test,
+        "coveralls.post": :test,
+        "coveralls.html": :test
+      ]
     ]
   end
 
@@ -33,15 +40,18 @@ defmodule Braintrust.MixProject do
       {:req, "~> 0.5"},
       {:jason, "~> 1.4"},
       {:mimic, "~> 1.11", only: :test},
-      {:ex_doc, "~> 0.35", only: :dev, runtime: false}
+      {:ex_doc, "~> 0.35", only: :dev, runtime: false},
+      {:dialyxir, "~> 1.4", only: [:dev], runtime: false},
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      {:doctor, "~> 0.22.0", only: :dev},
+      {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
+      {:excoveralls, "~> 0.18.5", only: :test},
+      {:ex_quality, "~> 0.1", only: [:dev, :test], runtime: false}
     ]
   end
 
-  defp description do
-    """
-    Elixir client for Braintrust.dev AI evaluation and observability platform.
-    """
-  end
+  defp description,
+    do: "Elixir client for Braintrust.dev AI evaluation and observability platform."
 
   defp package do
     [
