@@ -138,5 +138,5 @@ defmodule Braintrust.Error do
   def type_from_status(422), do: :unprocessable_entity
   def type_from_status(429), do: :rate_limit
   def type_from_status(status) when status >= 500, do: :server_error
-  def type_from_status(_), do: :bad_request
+  def type_from_status(_status), do: :bad_request
 end

@@ -257,4 +257,90 @@ defmodule Braintrust.ClientTest do
                Client.delete(client, "/v1/project/proj_123")
     end
   end
+
+  describe "get_stream/3" do
+    test "returns a stream of items" do
+      client = Client.new()
+
+      # First call returns items, second call returns empty to signal end
+      {:ok, agent} = Agent.start_link(fn -> 0 end)
+
+      stub(Req, :request, fn _client, opts ->
+        page = Agent.get_and_update(agent, fn n -> {n, n + 1} end)
+
+        assert opts[:method] == :get
+        assert opts[:url] == "/v1/project"
+
+        case page do
+          0 ->
+            assert opts[:params][:limit] == 50
+
+            {:ok,
+             %Req.Response{
+               status: 200,
+               body: %{"objects" => [%{"id" => "1"}, %{"id" => "2"}]},
+               headers: []
+             }}
+
+          _subsequent ->
+            {:ok,
+             %Req.Response{
+               status: 200,
+               body: %{"objects" => []},
+               headers: []
+             }}
+        end
+      end)
+
+      result = Client.get_stream(client, "/v1/project", limit: 50) |> Enum.to_list()
+      assert result == [%{"id" => "1"}, %{"id" => "2"}]
+
+      Agent.stop(agent)
+    end
+  end
+
+  describe "get_all/3" do
+    test "returns all items as a list" do
+      client = Client.new()
+
+      # First call returns items, second call returns empty to signal end
+      {:ok, agent} = Agent.start_link(fn -> 0 end)
+
+      stub(Req, :request, fn _client, _opts ->
+        page = Agent.get_and_update(agent, fn n -> {n, n + 1} end)
+
+        case page do
+          0 ->
+            {:ok,
+             %Req.Response{
+               status: 200,
+               body: %{"objects" => [%{"id" => "1"}]},
+               headers: []
+             }}
+
+          _subsequent ->
+            {:ok,
+             %Req.Response{
+               status: 200,
+               body: %{"objects" => []},
+               headers: []
+             }}
+        end
+      end)
+
+      assert {:ok, [%{"id" => "1"}]} = Client.get_all(client, "/v1/project")
+
+      Agent.stop(agent)
+    end
+
+    test "returns error on API failure" do
+      client = Client.new()
+
+      stub(Req, :request, fn _client, _opts ->
+        {:ok, %Req.Response{status: 500, body: %{"error" => "Server error"}, headers: %{}}}
+      end)
+
+      assert {:error, %Error{type: :server_error}} = Client.get_all(client, "/v1/project")
+    end
+  end
 end

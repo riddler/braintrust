@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Cursor-based pagination with Stream support (#9)
+- `Braintrust.Pagination` module for lazy and eager pagination
+- `Client.get_stream/3` for streaming paginated API results
+- `Client.get_all/3` for eager loading of all paginated results
+- Duplicate filtering support via `:unique_by` option
+
 ## [0.0.1] - 2025-01-07
 
 ### Added

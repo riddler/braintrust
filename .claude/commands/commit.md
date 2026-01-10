@@ -11,9 +11,8 @@ This command handles the workflow for committing changes on a branch.
 
 ### Step 0: Pre-commit Checks
 
-1. Run `mix format` to ensure code is formatted
-2. Run `mix test` to ensure tests pass
-3. Fix ALL issues before proceeding
+1. Run `mix quality` to ensure code quality
+2. Fix ALL issues before proceeding
 
 ### Step 1: Analyze Changes
 
@@ -24,6 +23,7 @@ This command handles the workflow for committing changes on a branch.
    - What features were added
    - What bugs were fixed
    - What was refactored or improved
+5. Check if CHANGELOG.md exists and read its current contents
 
 ### Step 2: Detect Related Issue
 
@@ -48,7 +48,34 @@ Attempt to detect a related GitHub issue using these strategies in order:
 4. **Fallback to user prompt**:
    - If no valid issue detected, ask: "Is this commit related to a GitHub issue? (Enter issue number or press Enter to skip)"
 
-### Step 3: Construct Commit Message
+### Step 3: Prepare CHANGELOG Entry
+
+If CHANGELOG.md exists and follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format:
+
+1. **Categorize the changes** into appropriate sections:
+   - **Added** - New features or functionality
+   - **Changed** - Changes to existing functionality
+   - **Deprecated** - Features that will be removed in future
+   - **Removed** - Features that were removed
+   - **Fixed** - Bug fixes
+   - **Security** - Security-related changes
+
+2. **Write concise bullet points** for each change:
+   - Start with a verb (Adds, Implements, Fixes, etc.)
+   - Be specific but concise
+   - Reference issue numbers where applicable (e.g., `(#107)`)
+
+3. **Example entry**:
+   ```markdown
+   ## [Unreleased]
+
+   ### Added
+   - Cursor-based pagination with Stream support (#9)
+   - `Client.get_stream/3` for lazy paginated requests
+   - `Client.get_all/3` for eager paginated requests
+   ```
+
+### Step 4: Construct Commit Message
 
 Create a well-crafted commit message:
 
@@ -66,11 +93,12 @@ Closes #XXX
 **Key guidelines:**
 - Use present tense ("Adds", "Fixes", "Updates")
 - Subject line: **Always keep under 50 characters**
+- Subject line: Don't include ticket/issue number (they will be referenced in the body)
 - Body: Wrap at 72 characters per line
 - Be detailed and technical in the body
 - Include `Closes #XXX` only if an issue was detected/validated
 
-### Step 4: Present for Approval
+### Step 5: Present for Approval
 
 Show the user the proposed commit:
 
@@ -78,6 +106,11 @@ Show the user the proposed commit:
 I've analyzed your changes and prepared the following:
 
 **Related Issue**: #107 - "Add project list endpoint" (detected from branch name)
+
+**CHANGELOG Entry** (to be added under [Unreleased]):
+### Added
+- Project resource module with list, get, create, delete operations (#107)
+- Cursor-based pagination support
 
 **Git Commit Message**:
 ```
@@ -92,6 +125,7 @@ Closes #107
 ```
 
 **Files to commit**:
+- CHANGELOG.md
 - lib/braintrust/resources/project.ex
 - test/braintrust/resources/project_test.exs
 - [... other modified files]
@@ -99,15 +133,20 @@ Closes #107
 Shall I proceed with this commit?
 ```
 
-### Step 5: Execute After Approval
+### Step 6: Execute After Approval
 
 1. **Run mix format** to ensure formatting:
    ```bash
    mix format
    ```
 
-2. **Create git commit**:
-   - Stage all relevant files
+2. **Update CHANGELOG.md**:
+   - Add the prepared entries under the `## [Unreleased]` section
+   - Place entries in the appropriate subsection (Added, Changed, Fixed, etc.)
+   - Create the subsection if it doesn't exist under [Unreleased]
+
+3. **Create git commit**:
+   - Stage all relevant files (including CHANGELOG.md)
    - Create commit with the detailed message
    - Use HEREDOC for proper formatting:
      ```bash
@@ -121,7 +160,7 @@ Shall I proceed with this commit?
      )"
      ```
 
-3. **Verify**:
+4. **Verify**:
    - Show result: `git log --oneline -n 1`
 
 ## Important Guidelines:

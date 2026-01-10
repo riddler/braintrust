@@ -72,6 +72,7 @@
           {Credo.Check.Consistency.ExceptionNames, []},
           {Credo.Check.Consistency.LineEndings, []},
           {Credo.Check.Consistency.ParameterPatternMatching, []},
+          {Credo.Check.Readability.ParenthesesOnZeroArityDefs, []},
           {Credo.Check.Consistency.SpaceAroundOperators, []},
           {Credo.Check.Consistency.SpaceInParentheses, []},
           {Credo.Check.Consistency.TabsOrSpaces, []},
@@ -83,7 +84,7 @@
           # Priority values are: `low, normal, high, higher`
           #
           {Credo.Check.Design.AliasUsage,
-           [priority: :low, if_nested_deeper_than: 2, if_called_more_often_than: 0]},
+           [priority: :normal, if_nested_deeper_than: 2, if_called_more_often_than: 0]},
           {Credo.Check.Design.TagFIXME, []},
           # You can also customize the exit_status of each check.
           # If you don't want TODO comments to cause `mix credo` to fail, just
@@ -102,7 +103,7 @@
           {Credo.Check.Readability.ModuleDoc, []},
           {Credo.Check.Readability.ModuleNames, []},
           {Credo.Check.Readability.ParenthesesInCondition, []},
-          {Credo.Check.Readability.ParenthesesOnZeroArityDefs, []},
+          # {Credo.Check.Readability.ParenthesesOnZeroArityDefs, []},
           {Credo.Check.Readability.PipeIntoAnonymousFunctions, []},
           {Credo.Check.Readability.PredicateFunctionNames, []},
           {Credo.Check.Readability.PreferImplicitTry, []},
@@ -150,7 +151,6 @@
           {Credo.Check.Warning.OperationWithConstantResult, []},
           {Credo.Check.Warning.RaiseInsideRescue, []},
           {Credo.Check.Warning.SpecWithStruct, []},
-          {Credo.Check.Warning.StructFieldAmount, []},
           {Credo.Check.Warning.UnsafeExec, []},
           {Credo.Check.Warning.UnusedEnumOperation, []},
           {Credo.Check.Warning.UnusedFileOperation, []},
@@ -160,7 +160,16 @@
           {Credo.Check.Warning.UnusedRegexOperation, []},
           {Credo.Check.Warning.UnusedStringOperation, []},
           {Credo.Check.Warning.UnusedTupleOperation, []},
-          {Credo.Check.Warning.WrongTestFileExtension, []}
+          {Credo.Check.Warning.WrongTestFileExtension, []},
+
+          # Enabled controversial and experimental checks
+          {Credo.Check.Consistency.UnusedVariableNames, []},
+          {Credo.Check.Design.DuplicatedCode, []},
+          {Credo.Check.Readability.ImplTrue, []},
+          {Credo.Check.Readability.Specs, []},
+          {Credo.Check.Readability.StrictModuleLayout, []},
+          {Credo.Check.Refactor.IoPuts, []},
+          {Credo.Check.Warning.MixEnv, []}
         ],
         disabled: [
           #
@@ -172,12 +181,12 @@
           #   and be sure to use `mix credo --strict` to see low priority checks)
           #
           {Credo.Check.Consistency.MultiAliasImportRequireUse, []},
-          {Credo.Check.Consistency.UnusedVariableNames, []},
-          {Credo.Check.Design.DuplicatedCode, []},
+          # {Credo.Check.Consistency.UnusedVariableNames, []},
+          # {Credo.Check.Design.DuplicatedCode, []},
           {Credo.Check.Design.SkipTestWithoutComment, []},
           {Credo.Check.Readability.AliasAs, []},
           {Credo.Check.Readability.BlockPipe, []},
-          {Credo.Check.Readability.ImplTrue, []},
+          # {Credo.Check.Readability.ImplTrue, []},
           {Credo.Check.Readability.MultiAlias, []},
           {Credo.Check.Readability.NestedFunctionCalls, []},
           {Credo.Check.Readability.OneArityFunctionInPipe, []},
@@ -185,14 +194,14 @@
           {Credo.Check.Readability.SeparateAliasRequire, []},
           {Credo.Check.Readability.SingleFunctionToBlockPipe, []},
           {Credo.Check.Readability.SinglePipe, []},
-          {Credo.Check.Readability.Specs, []},
-          {Credo.Check.Readability.StrictModuleLayout, []},
+          # {Credo.Check.Readability.Specs, []},
+          # {Credo.Check.Readability.StrictModuleLayout, []},
           {Credo.Check.Readability.WithCustomTaggedTuple, []},
           {Credo.Check.Refactor.ABCSize, []},
           {Credo.Check.Refactor.AppendSingleItem, []},
           {Credo.Check.Refactor.DoubleBooleanNegation, []},
           {Credo.Check.Refactor.FilterReject, []},
-          {Credo.Check.Refactor.IoPuts, []},
+          # {Credo.Check.Refactor.IoPuts, []},
           {Credo.Check.Refactor.MapMap, []},
           {Credo.Check.Refactor.ModuleDependencies, []},
           {Credo.Check.Refactor.NegatedIsNil, []},
@@ -203,7 +212,7 @@
           {Credo.Check.Warning.LazyLogging, []},
           {Credo.Check.Warning.LeakyEnvironment, []},
           {Credo.Check.Warning.MapGetUnsafePass, []},
-          {Credo.Check.Warning.MixEnv, []},
+          # {Credo.Check.Warning.MixEnv, []},
           {Credo.Check.Warning.UnsafeToAtom, []}
 
           # {Credo.Check.Refactor.MapInto, []},
