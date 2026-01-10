@@ -432,18 +432,7 @@ defmodule Braintrust.ExperimentTest do
   describe "fetch_stream/3 edge cases" do
     test "handles empty events list" do
       {:ok, agent} = start_pagination_agent()
-
-      stub(Req, :request, fn _client, _opts ->
-        page = Agent.get_and_update(agent, fn n -> {n, n + 1} end)
-
-        case page do
-          0 ->
-            {:ok, %Req.Response{status: 200, body: %{"events" => []}, headers: []}}
-
-          _page ->
-            {:ok, %Req.Response{status: 200, body: %{"events" => []}, headers: []}}
-        end
-      end)
+      stub(Req, :request, empty_events_stub(agent))
 
       events = Experiment.fetch_stream("exp_123") |> Enum.to_list()
       assert events == []
@@ -496,18 +485,7 @@ defmodule Braintrust.ExperimentTest do
 
     test "propagates fetch errors via throw" do
       {:ok, agent} = start_pagination_agent()
-
-      stub(Req, :request, fn _client, _opts ->
-        page = Agent.get_and_update(agent, fn n -> {n, n + 1} end)
-
-        case page do
-          0 ->
-            {:ok, %Req.Response{status: 500, body: %{"error" => "Server error"}, headers: %{}}}
-
-          _page ->
-            {:ok, %Req.Response{status: 200, body: %{"events" => []}, headers: []}}
-        end
-      end)
+      stub(Req, :request, error_on_first_page_stub(agent))
 
       # The fetch_events_page function throws {:fetch_error, error} when Client.post returns {:error, _}
       assert catch_throw(Experiment.fetch_stream("exp_123") |> Enum.to_list()) ==

@@ -56,12 +56,14 @@ defmodule Braintrust.Resource do
     |> maybe_add(:project_id, filter_params[:project_id])
     |> maybe_add(:project_name, filter_params[:project_name])
     |> maybe_add(:experiment_name, filter_params[:experiment_name])
+    |> maybe_add(:dataset_name, filter_params[:dataset_name])
     |> maybe_add(:org_name, filter_params[:org_name])
     |> maybe_add(:ids, filter_params[:ids])
     # Support all possible filter keys from all_opts if not in filter_params
     |> maybe_add(:project_id, all_opts[:project_id])
     |> maybe_add(:project_name, all_opts[:project_name])
     |> maybe_add(:experiment_name, all_opts[:experiment_name])
+    |> maybe_add(:dataset_name, all_opts[:dataset_name])
     |> maybe_add(:org_name, all_opts[:org_name])
     |> Enum.uniq_by(fn {key, _value} -> key end)
   end

@@ -35,6 +35,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `Experiment.summarize/2` - Get aggregated experiment metrics
 - Internal Resource helper module to eliminate code duplication between resource modules
 - Shared test helpers for pagination testing
+- `Braintrust.Dataset` module with full CRUD operations (#14)
+  - `Dataset.list/1`, `Dataset.stream/1` - List datasets with pagination
+  - `Dataset.get/2` - Get dataset by ID
+  - `Dataset.create/2` - Create new dataset (idempotent)
+  - `Dataset.update/3` - Update dataset
+  - `Dataset.delete/2` - Delete dataset (soft delete)
+- Dataset-specific operations (#14)
+  - `Dataset.insert/3` - Insert test records with versioning
+  - `Dataset.fetch/3`, `Dataset.fetch_stream/3` - Fetch records with pagination
+  - `Dataset.feedback/3` - Add scores and comments to records
+  - `Dataset.summarize/2` - Get dataset summary statistics
+- 24 comprehensive tests for Dataset module
+- `dataset_name` filter support in Resource module
+- Refactored test helpers (`empty_events_stub/1`, `error_on_first_page_stub/1`) to eliminate code duplication
 
 ### Changed
 - Updated README to reflect Projects API as implemented
@@ -42,6 +56,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated module documentation to remove "(coming soon)" from Project resource
 - Updated README with Experiments examples and API coverage table
 - Refactored Project and Experiment modules to use shared Resource helpers
+- Updated README with Datasets examples and marked as implemented in API coverage table
+- Updated main Braintrust module documentation to reflect Dataset availability
 
 ## [0.0.1] - 2025-01-07
 

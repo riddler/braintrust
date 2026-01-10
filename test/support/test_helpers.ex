@@ -45,4 +45,37 @@ defmodule Braintrust.TestHelpers do
   def start_pagination_agent do
     Agent.start_link(fn -> 0 end)
   end
+
+  @doc """
+  Creates a stub that returns empty events for all pages.
+
+  Used for testing fetch_stream with no data.
+  """
+  @spec empty_events_stub(pid()) :: (any(), any() -> {:ok, Req.Response.t()})
+  def empty_events_stub(agent) do
+    fn _client, _opts ->
+      _page = Agent.get_and_update(agent, fn n -> {n, n + 1} end)
+      {:ok, %Req.Response{status: 200, body: %{"events" => []}, headers: []}}
+    end
+  end
+
+  @doc """
+  Creates a stub that returns a server error on the first request.
+
+  Used for testing error propagation in fetch_stream.
+  """
+  @spec error_on_first_page_stub(pid()) :: (any(), any() -> {:ok, Req.Response.t()})
+  def error_on_first_page_stub(agent) do
+    fn _client, _opts ->
+      page = Agent.get_and_update(agent, fn n -> {n, n + 1} end)
+
+      case page do
+        0 ->
+          {:ok, %Req.Response{status: 500, body: %{"error" => "Server error"}, headers: %{}}}
+
+        _page ->
+          {:ok, %Req.Response{status: 200, body: %{"events" => []}, headers: []}}
+      end
+    end
+  end
 end
