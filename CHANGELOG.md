@@ -74,6 +74,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for OpenAI-compatible message format with `{{variable}}` syntax
 - `prompt_name` and `slug` filter parameters in Resource module
 - 21 comprehensive tests for Prompt module
+- `Braintrust.Function` module with full CRUD operations (#17)
+  - `Function.list/1`, `Function.stream/1` - List functions with pagination and filtering
+  - `Function.get/2` - Get function by ID with version/xact_id support
+  - `Function.create/2` - Create new function (idempotent)
+  - `Function.update/3` - Update function (may create new version)
+  - `Function.delete/2` - Delete function (soft delete)
+- Support for tools, scorers, and prompt-type functions (#17)
+- Polymorphic `function_data` field for different function implementations
+- `function_name` and `function_type` filter parameters in Resource module
+- 21 comprehensive tests for Function module
 
 ### Changed
 - Updated README to reflect Projects API as implemented
@@ -88,6 +98,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated README with comprehensive Prompts examples
 - Updated main module documentation to reflect Prompt availability
 - Marked Prompts as implemented in API coverage table
+- Updated README with Functions examples and usage patterns
+- Marked Functions as implemented in API coverage table
+- Updated work-in-progress notice to reflect Functions availability
 
 ## [0.0.1] - 2025-01-07
 
