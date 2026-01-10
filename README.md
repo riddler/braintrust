@@ -1,7 +1,5 @@
 # Braintrust
 
-> ⚠️ **Work in Progress** - This package is under active development. Projects, Experiments, Datasets, Logs, Prompts, and Functions APIs are now functional.
-
 An unofficial Elixir client for the [Braintrust](https://braintrust.dev) AI evaluation and observability platform.
 
 Braintrust is an end-to-end platform for evaluating, monitoring, and improving AI applications. This Hex package provides Elixir/Phoenix applications with access to Braintrust's REST API for managing projects, experiments, datasets, logs, and prompts.
@@ -13,7 +11,7 @@ Add `braintrust` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:braintrust, "~> 0.0.1"}
+    {:braintrust, "~> 0.1"}
   ]
 end
 ```

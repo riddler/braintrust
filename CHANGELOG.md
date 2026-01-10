@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] - 2025-01-10
+
 ### Added
 - Cursor-based pagination with Stream support (#9)
 - `Braintrust.Pagination` module for lazy and eager pagination
@@ -108,5 +110,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial placeholder release to reserve package name on hex.pm
 - Basic project structure
 
-[Unreleased]: https://github.com/riddler/braintrust/compare/v0.0.1...HEAD
+[Unreleased]: https://github.com/riddler/braintrust/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/riddler/braintrust/releases/tag/v0.1.0
 [0.0.1]: https://github.com/riddler/braintrust/releases/tag/v0.0.1
