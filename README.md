@@ -1,6 +1,6 @@
 # Braintrust
 
-> ⚠️ **Work in Progress** - This package is under active development. Projects, Experiments, Datasets, and Logs APIs are now functional. Prompts and Functions coming soon.
+> ⚠️ **Work in Progress** - This package is under active development. Projects, Experiments, Datasets, Logs, and Prompts APIs are now functional. Functions coming soon.
 
 An unofficial Elixir client for the [Braintrust](https://braintrust.dev) AI evaluation and observability platform.
 
@@ -166,14 +166,42 @@ Braintrust.Dataset.fetch_stream(dataset.id)
 
 ### Prompts
 
-Version-controlled prompt management:
+Version-controlled prompt management with template variables:
 
 ```elixir
+# Create a prompt
+{:ok, prompt} = Braintrust.Prompt.create(%{
+  project_id: "proj_123",
+  name: "customer-support",
+  slug: "customer-support-v1",
+  model: "gpt-4",
+  messages: [
+    %{role: "system", content: "You are a helpful customer support agent."},
+    %{role: "user", content: "{{user_input}}"}
+  ]
+})
+
 # List prompts
-{:ok, prompts} = Braintrust.Prompt.list(project_name: "my-project")
+{:ok, prompts} = Braintrust.Prompt.list(project_id: "proj_123")
 
 # Get a prompt by ID
 {:ok, prompt} = Braintrust.Prompt.get(prompt_id)
+
+# Get a specific version
+{:ok, prompt} = Braintrust.Prompt.get(prompt_id, version: "v2")
+
+# Update a prompt (creates new version)
+{:ok, prompt} = Braintrust.Prompt.update(prompt_id, %{
+  messages: [
+    %{role: "system", content: "Updated system prompt."},
+    %{role: "user", content: "{{user_input}}"}
+  ]
+})
+
+# Stream through prompts lazily
+Braintrust.Prompt.stream(project_id: "proj_123")
+|> Stream.take(50)
+|> Enum.to_list()
 ```
 
 ### Error Handling
@@ -207,7 +235,7 @@ end
 - **Experiments** - Run evaluations and compare results across runs
 - **Datasets** - Version-controlled test data with support for pinning evaluations to specific versions
 - **Logging/Tracing** - Production observability with span-based tracing
-- **Prompts** - Version-controlled prompt management with caching
+- **Prompts** - Version-controlled prompt management with template variables and versioning
 - **Functions** - Access to tools, scorers, and callable functions
 - **Automatic Retry** - Exponential backoff for rate limits and transient errors
 - **Pagination Streams** - Lazy iteration over paginated results
@@ -220,7 +248,7 @@ end
 | Experiments | `/v1/experiment` | ✅ Implemented |
 | Datasets | `/v1/dataset` | ✅ Implemented |
 | Logs | `/v1/project_logs` | ✅ Implemented |
-| Prompts | `/v1/prompt` | 🚧 Planned |
+| Prompts | `/v1/prompt` | ✅ Implemented |
 | Functions | `/v1/function` | 🚧 Planned |
 | BTQL | `/btql` | 🚧 Planned |
 
