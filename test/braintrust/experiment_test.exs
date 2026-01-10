@@ -237,6 +237,57 @@ defmodule Braintrust.ExperimentTest do
       assert {:ok, result} = Experiment.insert("exp_123", events)
       assert result["row_ids"] == ["row_1"]
     end
+
+    test "inserts events with Span structs" do
+      spans = [
+        %Braintrust.Span{
+          input: %{messages: [%{role: "user", content: "Hello"}]},
+          output: "Hi there!",
+          scores: %{quality: 0.9}
+        }
+      ]
+
+      expect(Req, :request, fn _client, opts ->
+        assert opts[:method] == :post
+        assert opts[:url] == "/v1/experiment/exp_123/insert"
+
+        # Span should be converted to map with nil values removed
+        [event] = opts[:json][:events]
+        assert event[:input] == %{messages: [%{role: "user", content: "Hello"}]}
+        assert event[:output] == "Hi there!"
+        assert event[:scores] == %{quality: 0.9}
+        refute Map.has_key?(event, :id)
+        refute Map.has_key?(event, :metadata)
+
+        {:ok, %Req.Response{status: 200, body: %{"row_ids" => ["row_1"]}, headers: []}}
+      end)
+
+      assert {:ok, result} = Experiment.insert("exp_123", spans)
+      assert result["row_ids"] == ["row_1"]
+    end
+
+    test "inserts mixed events (maps and Span structs)" do
+      events = [
+        %{input: %{q: "map"}, output: "map result"},
+        %Braintrust.Span{input: %{q: "span"}, output: "span result"}
+      ]
+
+      expect(Req, :request, fn _client, opts ->
+        [event1, event2] = opts[:json][:events]
+
+        # Map event unchanged
+        assert event1 == %{input: %{q: "map"}, output: "map result"}
+
+        # Span converted to map
+        assert event2[:input] == %{q: "span"}
+        assert event2[:output] == "span result"
+
+        {:ok, %Req.Response{status: 200, body: %{"row_ids" => ["row_1", "row_2"]}, headers: []}}
+      end)
+
+      assert {:ok, result} = Experiment.insert("exp_123", events)
+      assert length(result["row_ids"]) == 2
+    end
   end
 
   describe "fetch/3" do

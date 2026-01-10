@@ -44,7 +44,7 @@ defmodule Braintrust.Experiment do
 
   """
 
-  alias Braintrust.{Client, Error}
+  alias Braintrust.{Client, Error, Span}
 
   @type t :: %__MODULE__{
           id: String.t(),
@@ -289,7 +289,7 @@ defmodule Braintrust.Experiment do
 
   ## Parameters
 
-    * `events` - List of event maps, each containing:
+    * `events` - List of event maps or `%Braintrust.Span{}` structs, each containing:
       * `:id` - Unique event ID (optional, auto-generated if not provided)
       * `:input` - Input data (recommended: OpenAI message format)
       * `:output` - Output/response from the task
@@ -305,6 +305,7 @@ defmodule Braintrust.Experiment do
 
   ## Examples
 
+      # With raw maps
       iex> {:ok, result} = Braintrust.Experiment.insert("exp_123", [
       ...>   %{
       ...>     input: %{messages: [%{role: "user", content: "What is 2+2?"}]},
@@ -314,11 +315,16 @@ defmodule Braintrust.Experiment do
       ...>   }
       ...> ])
 
+      # With Span structs
+      iex> spans = [%Braintrust.Span{input: %{q: "test"}, output: "result"}]
+      iex> {:ok, result} = Braintrust.Experiment.insert("exp_123", spans)
+
   """
-  @spec insert(String.t(), [map()], keyword()) :: {:ok, map()} | {:error, Error.t()}
+  @spec insert(String.t(), [map() | Span.t()], keyword()) :: {:ok, map()} | {:error, Error.t()}
   def insert(experiment_id, events, opts \\ []) when is_list(events) do
     client = Client.new(opts)
-    body = %{events: events}
+    normalized_events = Enum.map(events, &normalize_event/1)
+    body = %{events: normalized_events}
 
     Client.post(client, "#{@api_path}/#{experiment_id}/insert", body)
   end
@@ -524,6 +530,9 @@ defmodule Braintrust.Experiment do
   end
 
   # Private Functions
+
+  defp normalize_event(%Span{} = span), do: Span.to_map(span)
+  defp normalize_event(event) when is_map(event), do: event
 
   defp to_struct(map) when is_map(map) do
     %__MODULE__{

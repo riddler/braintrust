@@ -49,6 +49,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 24 comprehensive tests for Dataset module
 - `dataset_name` filter support in Resource module
 - Refactored test helpers (`empty_events_stub/1`, `error_on_first_page_stub/1`) to eliminate code duplication
+- `Braintrust.Span` struct for representing traces in Braintrust (#15)
+  - Core fields: `id`, `span_id`, `root_span_id`, `span_parents` for DAG trace structure
+  - Data fields: `input`, `output`, `expected`, `error`
+  - Scoring fields: `scores` (normalized 0-1), `metrics` (raw numbers)
+  - Metadata fields: `metadata`, `tags`, `created_at`
+  - `Span.to_map/1` for converting to API-ready maps (removes nil values)
+- `Braintrust.Log` module for production observability (#15)
+  - `Log.insert/3` - Insert production logs/traces (write-only API)
+  - Accepts both raw maps and `%Braintrust.Span{}` structs
+  - Supports batching multiple events in a single request
+  - OpenAI message format recommended for best UI integration
+- Enhanced `Experiment.insert/3` to accept `%Braintrust.Span{}` structs (#15)
+- Enhanced `Dataset.insert/3` to accept `%Braintrust.Span{}` structs (#15)
+- 23 comprehensive tests for Span and Log modules
+- 4 additional tests for Span support in Experiment and Dataset modules
 
 ### Changed
 - Updated README to reflect Projects API as implemented
@@ -58,6 +73,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactored Project and Experiment modules to use shared Resource helpers
 - Updated README with Datasets examples and marked as implemented in API coverage table
 - Updated main Braintrust module documentation to reflect Dataset availability
+- Updated README with Logs examples and marked as implemented in API coverage table
+- Enhanced insert operations across Experiment and Dataset modules to accept Span structs while maintaining backward compatibility
 
 ## [0.0.1] - 2025-01-07
 
