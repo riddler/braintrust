@@ -251,6 +251,37 @@ Braintrust.Function.stream(function_type: "tool")
 |> Enum.to_list()
 ```
 
+## LangChain Integration
+
+If you're using [LangChain Elixir](https://github.com/brainlid/langchain), you can automatically log all LLM interactions to Braintrust:
+
+```elixir
+alias LangChain.Chains.LLMChain
+alias LangChain.ChatModels.ChatOpenAI
+alias LangChain.Message
+alias Braintrust.LangChainCallbacks
+
+{:ok, chain} =
+  %{llm: ChatOpenAI.new!(%{model: "gpt-4"})}
+  |> LLMChain.new!()
+  |> LLMChain.add_callback(LangChainCallbacks.handler(
+    project_id: "your-project-id",
+    metadata: %{"environment" => "production"}
+  ))
+  |> LLMChain.add_message(Message.new_user!("Hello!"))
+  |> LLMChain.run()
+```
+
+For streaming with time-to-first-token metrics:
+
+```elixir
+|> LLMChain.add_callback(LangChainCallbacks.streaming_handler(
+  project_id: "your-project-id"
+))
+```
+
+See `Braintrust.LangChainCallbacks` for full documentation.
+
 ### Error Handling
 
 All API functions return `{:ok, result}` or `{:error, %Braintrust.Error{}}`:

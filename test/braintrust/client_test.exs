@@ -1,5 +1,5 @@
 defmodule Braintrust.ClientTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
   use Mimic
 
   alias Braintrust.{Client, Config, Error}
@@ -36,6 +36,7 @@ defmodule Braintrust.ClientTest do
 
     test "raises when no api_key configured" do
       Config.clear()
+      Application.delete_env(:braintrust, :api_key)
 
       assert_raise ArgumentError, ~r/API key not configured/, fn ->
         Client.new()
