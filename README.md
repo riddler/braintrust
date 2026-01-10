@@ -11,7 +11,7 @@ Add `braintrust` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:braintrust, "~> 0.1"}
+    {:braintrust, "~> 0.2"}
   ]
 end
 ```
