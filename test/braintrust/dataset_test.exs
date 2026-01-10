@@ -238,6 +238,54 @@ defmodule Braintrust.DatasetTest do
       assert result["row_ids"] == ["row_1"]
     end
 
+    test "inserts records with Span structs" do
+      spans = [
+        %Braintrust.Span{
+          input: %{question: "What is 2+2?"},
+          expected: "4"
+        }
+      ]
+
+      expect(Req, :request, fn _client, opts ->
+        assert opts[:method] == :post
+        assert opts[:url] == "/v1/dataset/ds_123/insert"
+
+        # Span should be converted to map with nil values removed
+        [record] = opts[:json][:events]
+        assert record[:input] == %{question: "What is 2+2?"}
+        assert record[:expected] == "4"
+        refute Map.has_key?(record, :id)
+
+        {:ok, %Req.Response{status: 200, body: %{"row_ids" => ["row_1"]}, headers: []}}
+      end)
+
+      assert {:ok, result} = Dataset.insert("ds_123", spans)
+      assert result["row_ids"] == ["row_1"]
+    end
+
+    test "inserts mixed records (maps and Span structs)" do
+      records = [
+        %{input: %{q: "map"}, expected: "map answer"},
+        %Braintrust.Span{input: %{q: "span"}, expected: "span answer"}
+      ]
+
+      expect(Req, :request, fn _client, opts ->
+        [record1, record2] = opts[:json][:events]
+
+        # Map record unchanged
+        assert record1 == %{input: %{q: "map"}, expected: "map answer"}
+
+        # Span converted to map
+        assert record2[:input] == %{q: "span"}
+        assert record2[:expected] == "span answer"
+
+        {:ok, %Req.Response{status: 200, body: %{"row_ids" => ["row_1", "row_2"]}, headers: []}}
+      end)
+
+      assert {:ok, result} = Dataset.insert("ds_123", records)
+      assert length(result["row_ids"]) == 2
+    end
+
     test "requires records to be a list" do
       assert_raise FunctionClauseError, fn ->
         Dataset.insert("ds_123", %{invalid: "not a list"})

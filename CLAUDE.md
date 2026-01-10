@@ -44,7 +44,8 @@ lib/braintrust/
 ├── project.ex              # %Braintrust.Project{} + CRUD functions
 ├── experiment.ex           # %Braintrust.Experiment{} + functions
 ├── dataset.ex              # %Braintrust.Dataset{} + functions
-├── log.ex                  # Logging/tracing (embeds Span struct)
+├── log.ex                  # Production logging/tracing (write-only API)
+├── span.ex                 # %Braintrust.Span{} struct for traces
 ├── prompt.ex               # %Braintrust.Prompt{} + functions
 └── function.ex             # %Braintrust.Function{} + functions
 ```

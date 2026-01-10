@@ -50,7 +50,7 @@ defmodule Braintrust.Dataset do
 
   """
 
-  alias Braintrust.{Client, Error}
+  alias Braintrust.{Client, Error, Span}
 
   @type t :: %__MODULE__{
           id: String.t(),
@@ -278,7 +278,7 @@ defmodule Braintrust.Dataset do
 
   ## Parameters
 
-    * `records` - List of record maps, each containing:
+    * `records` - List of record maps or `%Braintrust.Span{}` structs, each containing:
       * `:input` - Input data to recreate the example (required)
       * `:expected` - Expected output for scoring (optional)
       * `:metadata` - Custom metadata map (optional)
@@ -291,6 +291,7 @@ defmodule Braintrust.Dataset do
 
   ## Examples
 
+      # With raw maps
       iex> {:ok, result} = Braintrust.Dataset.insert("ds_123", [
       ...>   %{
       ...>     input: %{question: "What is 2+2?"},
@@ -303,11 +304,16 @@ defmodule Braintrust.Dataset do
       ...>   }
       ...> ])
 
+      # With Span structs
+      iex> spans = [%Braintrust.Span{input: %{q: "test"}, expected: "answer"}]
+      iex> {:ok, result} = Braintrust.Dataset.insert("ds_123", spans)
+
   """
-  @spec insert(String.t(), [map()], keyword()) :: {:ok, map()} | {:error, Error.t()}
+  @spec insert(String.t(), [map() | Span.t()], keyword()) :: {:ok, map()} | {:error, Error.t()}
   def insert(dataset_id, records, opts \\ []) when is_list(records) do
     client = Client.new(opts)
-    body = %{events: records}
+    normalized_records = Enum.map(records, &normalize_record/1)
+    body = %{events: normalized_records}
 
     Client.post(client, "#{@api_path}/#{dataset_id}/insert", body)
   end
@@ -502,6 +508,9 @@ defmodule Braintrust.Dataset do
   end
 
   # Private Functions
+
+  defp normalize_record(%Span{} = span), do: Span.to_map(span)
+  defp normalize_record(record) when is_map(record), do: record
 
   defp to_struct(map) when is_map(map) do
     %__MODULE__{

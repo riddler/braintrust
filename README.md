@@ -1,6 +1,6 @@
 # Braintrust
 
-> ⚠️ **Work in Progress** - This package is under active development. Projects, Experiments, and Datasets APIs are now functional. Other resources coming soon.
+> ⚠️ **Work in Progress** - This package is under active development. Projects, Experiments, Datasets, and Logs APIs are now functional. Prompts and Functions coming soon.
 
 An unofficial Elixir client for the [Braintrust](https://braintrust.dev) AI evaluation and observability platform.
 
@@ -69,16 +69,28 @@ Braintrust.Project.stream(limit: 50)
 Log production traces for observability:
 
 ```elixir
-{:ok, _} = Braintrust.Log.insert(project_id, %{
-  events: [
-    %{
-      input: %{messages: [%{role: "user", content: "Hello"}]},
-      output: "Hi there!",
-      scores: %{quality: 0.9},
-      metadata: %{model: "gpt-4"}
-    }
-  ]
-})
+# Log with raw maps
+{:ok, _} = Braintrust.Log.insert(project_id, [
+  %{
+    input: %{messages: [%{role: "user", content: "Hello"}]},
+    output: "Hi there!",
+    scores: %{quality: 0.9},
+    metadata: %{model: "gpt-4", environment: "production"},
+    metrics: %{latency_ms: 250, input_tokens: 50, output_tokens: 25}
+  }
+])
+
+# Or use Span structs for better type safety
+spans = [
+  %Braintrust.Span{
+    input: %{messages: [%{role: "user", content: "Hello"}]},
+    output: "Hi there!",
+    scores: %{quality: 0.9},
+    metadata: %{model: "gpt-4"},
+    metrics: %{latency_ms: 250}
+  }
+]
+{:ok, _} = Braintrust.Log.insert(project_id, spans)
 ```
 
 ### Experiments
@@ -207,7 +219,7 @@ end
 | Projects | `/v1/project` | ✅ Implemented |
 | Experiments | `/v1/experiment` | ✅ Implemented |
 | Datasets | `/v1/dataset` | ✅ Implemented |
-| Logs | `/v1/project_logs` | 🚧 Planned |
+| Logs | `/v1/project_logs` | ✅ Implemented |
 | Prompts | `/v1/prompt` | 🚧 Planned |
 | Functions | `/v1/function` | 🚧 Planned |
 | BTQL | `/btql` | 🚧 Planned |
