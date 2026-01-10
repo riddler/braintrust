@@ -64,6 +64,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced `Dataset.insert/3` to accept `%Braintrust.Span{}` structs (#15)
 - 23 comprehensive tests for Span and Log modules
 - 4 additional tests for Span support in Experiment and Dataset modules
+- `Braintrust.Prompt` module with full CRUD operations (#16)
+  - `Prompt.list/1`, `Prompt.stream/1` - List prompts with pagination
+  - `Prompt.get/2` - Get prompt by ID with version/xact_id support
+  - `Prompt.create/2` - Create new prompt (idempotent)
+  - `Prompt.update/3` - Update prompt (creates new version)
+  - `Prompt.delete/2` - Delete prompt (soft delete)
+- Version-controlled prompt management with template variables (#16)
+- Support for OpenAI-compatible message format with `{{variable}}` syntax
+- `prompt_name` and `slug` filter parameters in Resource module
+- 21 comprehensive tests for Prompt module
 
 ### Changed
 - Updated README to reflect Projects API as implemented
@@ -75,6 +85,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated main Braintrust module documentation to reflect Dataset availability
 - Updated README with Logs examples and marked as implemented in API coverage table
 - Enhanced insert operations across Experiment and Dataset modules to accept Span structs while maintaining backward compatibility
+- Updated README with comprehensive Prompts examples
+- Updated main module documentation to reflect Prompt availability
+- Marked Prompts as implemented in API coverage table
 
 ## [0.0.1] - 2025-01-07
 
