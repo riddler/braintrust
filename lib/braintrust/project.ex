@@ -77,17 +77,7 @@ defmodule Braintrust.Project do
   """
   @spec list(keyword()) :: {:ok, [t()]} | {:error, Error.t()}
   def list(opts \\ []) do
-    {client_opts, query_opts} = split_opts(opts)
-    client = Client.new(client_opts)
-    {pagination_opts, filter_params} = split_pagination_opts(query_opts)
-    params = build_filter_params(filter_params)
-
-    get_all_opts = Keyword.merge(pagination_opts, params: params)
-
-    case Client.get_all(client, @api_path, get_all_opts) do
-      {:ok, items} -> {:ok, Enum.map(items, &to_struct/1)}
-      {:error, error} -> {:error, error}
-    end
+    Braintrust.Resource.list_all(@api_path, opts, &to_struct/1)
   end
 
   @doc """
@@ -115,16 +105,7 @@ defmodule Braintrust.Project do
   """
   @spec stream(keyword()) :: Enumerable.t()
   def stream(opts \\ []) do
-    {client_opts, query_opts} = split_opts(opts)
-    client = Client.new(client_opts)
-    {pagination_opts, filter_params} = split_pagination_opts(query_opts)
-    params = build_filter_params(filter_params)
-
-    get_stream_opts = Keyword.merge(pagination_opts, params: params)
-
-    client
-    |> Client.get_stream(@api_path, get_stream_opts)
-    |> Stream.map(&to_struct/1)
+    Braintrust.Resource.stream_all(@api_path, opts, &to_struct/1)
   end
 
   @doc """
@@ -257,24 +238,6 @@ defmodule Braintrust.Project do
   end
 
   # Private Functions
-
-  defp split_opts(opts) do
-    Keyword.split(opts, [:api_key, :base_url, :timeout, :max_retries])
-  end
-
-  defp split_pagination_opts(opts) do
-    Keyword.split(opts, [:limit, :starting_after, :ending_before])
-  end
-
-  defp build_filter_params(opts) do
-    []
-    |> maybe_add(:project_name, opts[:project_name])
-    |> maybe_add(:org_name, opts[:org_name])
-    |> maybe_add(:ids, opts[:ids])
-  end
-
-  defp maybe_add(params, _key, nil), do: params
-  defp maybe_add(params, key, value), do: Keyword.put(params, key, value)
 
   # Private helper to convert API response map to struct
   defp to_struct(map) when is_map(map) do

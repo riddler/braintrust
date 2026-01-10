@@ -22,11 +22,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Project.delete/2` for soft-deleting projects
 - DateTime parsing for `created_at` and `deleted_at` fields
 - Comprehensive test suite with 15 tests covering all operations
+- `Braintrust.Experiment` module with full CRUD operations (#13)
+  - `Experiment.list/1`, `Experiment.stream/1` - List experiments with pagination
+  - `Experiment.get/2` - Get experiment by ID
+  - `Experiment.create/2` - Create new experiment
+  - `Experiment.update/3` - Update experiment
+  - `Experiment.delete/2` - Delete experiment (soft delete)
+- Experiment-specific operations (#13)
+  - `Experiment.insert/3` - Insert evaluation events
+  - `Experiment.fetch/3`, `Experiment.fetch_stream/3` - Fetch events with pagination
+  - `Experiment.feedback/3` - Add scores and comments to events
+  - `Experiment.summarize/2` - Get aggregated experiment metrics
+- Internal Resource helper module to eliminate code duplication between resource modules
+- Shared test helpers for pagination testing
 
 ### Changed
 - Updated README to reflect Projects API as implemented
 - Increased coverage requirement from 80% to 90%
 - Updated module documentation to remove "(coming soon)" from Project resource
+- Updated README with Experiments examples and API coverage table
+- Refactored Project and Experiment modules to use shared Resource helpers
 
 ## [0.0.1] - 2025-01-07
 
