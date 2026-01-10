@@ -33,7 +33,7 @@ defmodule Braintrust do
 
   See the individual resource modules for API operations:
 
-  - `Braintrust.Project` - Manage projects (coming soon)
+  - `Braintrust.Project` - Manage projects
   - `Braintrust.Experiment` - Run experiments (coming soon)
   - `Braintrust.Dataset` - Manage datasets (coming soon)
   - `Braintrust.Log` - Log traces and spans (coming soon)

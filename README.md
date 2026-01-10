@@ -1,6 +1,6 @@
 # Braintrust
 
-> ⚠️ **Work in Progress** - This package is under active development. The README below describes the target API design and may not reflect current functionality.
+> ⚠️ **Work in Progress** - This package is under active development. Projects API is now functional. Other resources coming soon.
 
 An unofficial Elixir client for the [Braintrust](https://braintrust.dev) AI evaluation and observability platform.
 
@@ -52,8 +52,16 @@ API keys can be created at [braintrust.dev/app/settings](https://www.braintrust.
 # Get a project by ID
 {:ok, project} = Braintrust.Project.get(project_id)
 
-# Delete a project
-:ok = Braintrust.Project.delete(project_id)
+# Update a project
+{:ok, project} = Braintrust.Project.update(project_id, %{name: "updated-name"})
+
+# Delete a project (soft delete)
+{:ok, project} = Braintrust.Project.delete(project_id)
+
+# Stream through projects lazily (memory efficient)
+Braintrust.Project.stream(limit: 50)
+|> Stream.take(100)
+|> Enum.to_list()
 ```
 
 ### Logging Traces
@@ -128,17 +136,6 @@ Version-controlled prompt management:
 {:ok, prompt} = Braintrust.Prompt.get(prompt_id)
 ```
 
-### Pagination
-
-Results are automatically paginated. Use streams for lazy iteration:
-
-```elixir
-Braintrust.Project.list()
-|> Braintrust.Pagination.stream()
-|> Stream.take(100)
-|> Enum.to_list()
-```
-
 ### Error Handling
 
 All API functions return `{:ok, result}` or `{:error, %Braintrust.Error{}}`:
@@ -179,7 +176,7 @@ end
 
 | Resource | Endpoint | Status |
 |----------|----------|--------|
-| Projects | `/v1/project` | 🚧 Planned |
+| Projects | `/v1/project` | ✅ Implemented |
 | Experiments | `/v1/experiment` | 🚧 Planned |
 | Datasets | `/v1/dataset` | 🚧 Planned |
 | Logs | `/v1/project_logs` | 🚧 Planned |
