@@ -136,6 +136,71 @@ defmodule Braintrust.Client do
     request(client, :delete, path, opts)
   end
 
+  @doc """
+  Makes a paginated GET request, returning a Stream of items.
+
+  This is a convenience wrapper around `Braintrust.Pagination.stream/2`
+  for paginating through list endpoints.
+
+  ## Options
+
+    * `:limit` - Number of items per page (default: 100)
+    * `:starting_after` - Cursor to start pagination from
+    * `:unique_by` - Key for duplicate filtering
+    * `:params` - Additional query parameters
+
+  ## Examples
+
+      client = Braintrust.Client.new(api_key: "sk-test")
+
+      client
+      |> Braintrust.Client.get_stream("/v1/project", limit: 50)
+      |> Stream.take(100)
+      |> Enum.to_list()
+
+  """
+  @spec get_stream(t(), String.t(), keyword()) :: Enumerable.t()
+  def get_stream(client, path, opts \\ []) do
+    {pagination_opts, request_opts} = Keyword.split(opts, [:limit, :starting_after, :unique_by])
+    params = Keyword.get(request_opts, :params, [])
+
+    fetch_fn = fn page_opts ->
+      merged_params = Keyword.merge(params, page_opts)
+      get(client, path, params: merged_params)
+    end
+
+    Braintrust.Pagination.stream(fetch_fn, pagination_opts)
+  end
+
+  @doc """
+  Makes a paginated GET request, returning all items as a list.
+
+  This is a convenience wrapper around `Braintrust.Pagination.list/2`.
+  For large datasets, prefer `get_stream/3`.
+
+  ## Options
+
+  Same as `get_stream/3`.
+
+  ## Examples
+
+      client = Braintrust.Client.new(api_key: "sk-test")
+      {:ok, projects} = Braintrust.Client.get_all(client, "/v1/project")
+
+  """
+  @spec get_all(t(), String.t(), keyword()) :: {:ok, [map()]} | {:error, Error.t()}
+  def get_all(client, path, opts \\ []) do
+    {pagination_opts, request_opts} = Keyword.split(opts, [:limit, :starting_after, :unique_by])
+    params = Keyword.get(request_opts, :params, [])
+
+    fetch_fn = fn page_opts ->
+      merged_params = Keyword.merge(params, page_opts)
+      get(client, path, params: merged_params)
+    end
+
+    Braintrust.Pagination.list(fetch_fn, pagination_opts)
+  end
+
   # Private Functions
 
   defp request(client, method, path, opts) do
@@ -193,7 +258,7 @@ defmodule Braintrust.Client do
   end
 
   defp extract_message(body) when is_binary(body), do: body
-  defp extract_message(_), do: "Request failed"
+  defp extract_message(_body), do: "Request failed"
 
   defp extract_code(body) when is_map(body) do
     if is_map(body["error"]) do
@@ -203,22 +268,22 @@ defmodule Braintrust.Client do
     end
   end
 
-  defp extract_code(_), do: nil
+  defp extract_code(_body), do: nil
 
   defp extract_retry_after(headers) when is_map(headers) do
     case Map.get(headers, "retry-after") do
-      [value | _] when is_binary(value) ->
+      [value | _rest] when is_binary(value) ->
         case Integer.parse(value) do
-          {seconds, _} -> seconds * 1000
+          {seconds, _remainder} -> seconds * 1000
           :error -> nil
         end
 
-      _ ->
+      _other ->
         nil
     end
   end
 
-  defp extract_retry_after(_), do: nil
+  defp extract_retry_after(_headers), do: nil
 
   defp retry_policy(_request, response_or_error) do
     case response_or_error do
@@ -241,7 +306,7 @@ defmodule Braintrust.Client do
         true
 
       # Don't retry other errors
-      _ ->
+      _other ->
         false
     end
   end

@@ -46,7 +46,8 @@ defmodule Braintrust.MixProject do
       {:doctor, "~> 0.22.0", only: :dev},
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.18.5", only: :test},
-      {:ex_quality, "~> 0.1", only: [:dev, :test], runtime: false}
+      {:ex_quality, "~> 0.2", only: [:dev, :test], runtime: false},
+      {:usage_rules, "~> 0.1", only: :dev, runtime: false}
     ]
   end
 

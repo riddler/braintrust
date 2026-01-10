@@ -207,5 +207,5 @@ defmodule Braintrust.Config do
   def valid_api_key?(nil), do: false
   def valid_api_key?("sk-" <> _rest), do: true
   def valid_api_key?("bt-st-" <> _rest), do: true
-  def valid_api_key?(_), do: false
+  def valid_api_key?(_key), do: false
 end
