@@ -78,7 +78,7 @@ defmodule Braintrust.ClientTest do
          %Req.Response{
            status: 429,
            body: error_body,
-           headers: [{"retry-after", "5"}]
+           headers: %{"retry-after" => ["5"]}
          }}
       end)
 
@@ -104,6 +104,81 @@ defmodule Braintrust.ClientTest do
       end)
 
       assert {:error, %Error{type: :connection}} = Client.get(client, "/v1/project")
+    end
+
+    test "handles unexpected exceptions" do
+      client = Client.new()
+
+      expect(Req, :request, fn _client, _opts ->
+        {:error, %RuntimeError{message: "Something went wrong"}}
+      end)
+
+      assert {:error,
+              %Error{type: :connection, message: "Unexpected error: Something went wrong"}} =
+               Client.get(client, "/v1/project")
+    end
+
+    test "handles server errors (500)" do
+      client = Client.new()
+      error_body = %{"error" => "Internal server error"}
+
+      expect(Req, :request, fn _client, _opts ->
+        {:ok, %Req.Response{status: 500, body: error_body, headers: %{}}}
+      end)
+
+      assert {:error, %Error{type: :server_error}} = Client.get(client, "/v1/project")
+    end
+
+    test "handles string error bodies" do
+      client = Client.new()
+
+      expect(Req, :request, fn _client, _opts ->
+        {:ok, %Req.Response{status: 400, body: "Bad request", headers: %{}}}
+      end)
+
+      assert {:error, %Error{type: :bad_request, message: "Bad request"}} =
+               Client.get(client, "/v1/project")
+    end
+
+    test "handles simple error message format" do
+      client = Client.new()
+      error_body = %{"message" => "Simple error"}
+
+      expect(Req, :request, fn _client, _opts ->
+        {:ok, %Req.Response{status: 400, body: error_body, headers: %{}}}
+      end)
+
+      assert {:error, %Error{type: :bad_request, message: "Simple error"}} =
+               Client.get(client, "/v1/project")
+    end
+
+    test "handles error string format" do
+      client = Client.new()
+      error_body = %{"error" => "Error string"}
+
+      expect(Req, :request, fn _client, _opts ->
+        {:ok, %Req.Response{status: 400, body: error_body, headers: %{}}}
+      end)
+
+      assert {:error, %Error{type: :bad_request, message: "Error string"}} =
+               Client.get(client, "/v1/project")
+    end
+
+    test "handles non-integer retry-after header" do
+      client = Client.new()
+      error_body = %{"error" => %{"message" => "Rate limited"}}
+
+      expect(Req, :request, fn _client, _opts ->
+        {:ok,
+         %Req.Response{
+           status: 429,
+           body: error_body,
+           headers: %{"retry-after" => ["invalid"]}
+         }}
+      end)
+
+      assert {:error, %Error{type: :rate_limit, retry_after: nil}} =
+               Client.get(client, "/v1/project")
     end
   end
 
