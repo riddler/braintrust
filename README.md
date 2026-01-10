@@ -1,6 +1,6 @@
 # Braintrust
 
-> ⚠️ **Work in Progress** - This package is under active development. Projects API is now functional. Other resources coming soon.
+> ⚠️ **Work in Progress** - This package is under active development. Projects, Experiments, and Datasets APIs are now functional. Other resources coming soon.
 
 An unofficial Elixir client for the [Braintrust](https://braintrust.dev) AI evaluation and observability platform.
 
@@ -123,18 +123,33 @@ Manage test data for evaluations:
 
 ```elixir
 # Create a dataset
-{:ok, dataset} = Braintrust.Dataset.create(project_id, %{name: "test-cases"})
-
-# Insert test cases
-{:ok, _} = Braintrust.Dataset.insert(dataset_id, %{
-  events: [
-    %{input: %{question: "What is 2+2?"}, expected: "4"},
-    %{input: %{question: "What is 3+3?"}, expected: "6"}
-  ]
+{:ok, dataset} = Braintrust.Dataset.create(%{
+  project_id: "proj_123",
+  name: "test-cases",
+  description: "Q&A evaluation test cases"
 })
 
+# Insert test records
+{:ok, _} = Braintrust.Dataset.insert(dataset.id, [
+  %{input: %{question: "What is 2+2?"}, expected: "4"},
+  %{input: %{question: "What is 3+3?"}, expected: "6", metadata: %{category: "math"}}
+])
+
 # Fetch dataset records
-{:ok, records} = Braintrust.Dataset.fetch(dataset_id)
+{:ok, result} = Braintrust.Dataset.fetch(dataset.id, limit: 100)
+
+# Stream through all records
+Braintrust.Dataset.fetch_stream(dataset.id)
+|> Stream.each(&process_record/1)
+|> Stream.run()
+
+# Add feedback to records
+{:ok, _} = Braintrust.Dataset.feedback(dataset.id, [
+  %{id: "record_123", scores: %{quality: 0.95}, comment: "Excellent test case"}
+])
+
+# Get dataset summary
+{:ok, summary} = Braintrust.Dataset.summarize(dataset.id)
 ```
 
 ### Prompts
@@ -191,7 +206,7 @@ end
 |----------|----------|--------|
 | Projects | `/v1/project` | ✅ Implemented |
 | Experiments | `/v1/experiment` | ✅ Implemented |
-| Datasets | `/v1/dataset` | 🚧 Planned |
+| Datasets | `/v1/dataset` | ✅ Implemented |
 | Logs | `/v1/project_logs` | 🚧 Planned |
 | Prompts | `/v1/prompt` | 🚧 Planned |
 | Functions | `/v1/function` | 🚧 Planned |

@@ -35,7 +35,7 @@ defmodule Braintrust do
 
   - `Braintrust.Project` - Manage projects
   - `Braintrust.Experiment` - Run evaluations and track results
-  - `Braintrust.Dataset` - Manage datasets (coming soon)
+  - `Braintrust.Dataset` - Manage test datasets
   - `Braintrust.Log` - Log traces and spans (coming soon)
 
   ## Resources
