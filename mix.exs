@@ -43,6 +43,7 @@ defmodule Braintrust.MixProject do
     [
       {:req, "~> 0.5"},
       {:jason, "~> 1.4"},
+      {:langchain, "~> 0.4", optional: true},
       {:mimic, "~> 1.11", only: :test},
       {:ex_doc, "~> 0.35", only: :dev, runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev], runtime: false},

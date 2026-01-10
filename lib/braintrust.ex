@@ -38,6 +38,8 @@ defmodule Braintrust do
   - `Braintrust.Dataset` - Manage test datasets
   - `Braintrust.Log` - Log production traces and spans
   - `Braintrust.Prompt` - Version-controlled prompt management
+  - `Braintrust.Function` - Manage tools, scorers, and callable functions
+  - `Braintrust.LangChainCallbacks` - LangChain callback handler for observability
 
   ## Resources
 

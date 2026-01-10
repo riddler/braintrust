@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `Braintrust.LangChainCallbacks` module for LangChain integration (#25)
+  - `LangChainCallbacks.handler/1` - Basic callback handler for logging LLM interactions
+  - `LangChainCallbacks.streaming_handler/1` - Streaming-aware handler with TTFT metrics
+  - Automatic logging to Braintrust with input/output/metrics/metadata
+  - OpenAI message format support for "Try prompt" UI button
+  - Token usage tracking (input_tokens, output_tokens, total_tokens)
+  - Time-to-first-token and streaming duration metrics
+  - Error handling and retry tracking callbacks
+  - Tool execution logging support
+- LangChain as optional dependency (`:langchain ~> 0.4`)
+- 680+ lines of comprehensive tests for LangChain callbacks
+- LangChain integration documentation in README with usage examples
+
+### Fixed
+- Documentation warnings for `Braintrust.Function` references in CHANGELOG
+
 ## [0.1.0] - 2025-01-10
 
 ### Added
@@ -77,11 +94,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `prompt_name` and `slug` filter parameters in Resource module
 - 21 comprehensive tests for Prompt module
 - `Braintrust.Function` module with full CRUD operations (#17)
-  - `Function.list/1`, `Function.stream/1` - List functions with pagination and filtering
-  - `Function.get/2` - Get function by ID with version/xact_id support
-  - `Function.create/2` - Create new function (idempotent)
-  - `Function.update/3` - Update function (may create new version)
-  - `Function.delete/2` - Delete function (soft delete)
+  - `Braintrust.Function.list/1`, `Braintrust.Function.stream/1` - List functions with pagination and filtering
+  - `Braintrust.Function.get/2` - Get function by ID with version/xact_id support
+  - `Braintrust.Function.create/2` - Create new function (idempotent)
+  - `Braintrust.Function.update/3` - Update function (may create new version)
+  - `Braintrust.Function.delete/2` - Delete function (soft delete)
 - Support for tools, scorers, and prompt-type functions (#17)
 - Polymorphic `function_data` field for different function implementations
 - `function_name` and `function_type` filter parameters in Resource module
