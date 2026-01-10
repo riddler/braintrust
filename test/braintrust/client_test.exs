@@ -343,4 +343,141 @@ defmodule Braintrust.ClientTest do
       assert {:error, %Error{type: :server_error}} = Client.get_all(client, "/v1/project")
     end
   end
+
+  describe "error handling edge cases" do
+    test "handles empty error body" do
+      client = Client.new()
+
+      expect(Req, :request, fn _client, _opts ->
+        {:ok, %Req.Response{status: 400, body: %{}, headers: %{}}}
+      end)
+
+      assert {:error, %Error{type: :bad_request, message: "Request failed"}} =
+               Client.get(client, "/v1/project")
+    end
+
+    test "handles non-map, non-string error body" do
+      client = Client.new()
+
+      expect(Req, :request, fn _client, _opts ->
+        {:ok, %Req.Response{status: 400, body: nil, headers: %{}}}
+      end)
+
+      assert {:error, %Error{type: :bad_request, message: "Request failed"}} =
+               Client.get(client, "/v1/project")
+    end
+
+    test "extracts error code from nested error object" do
+      client = Client.new()
+      error_body = %{"error" => %{"message" => "Error", "code" => "test_code"}}
+
+      expect(Req, :request, fn _client, _opts ->
+        {:ok, %Req.Response{status: 400, body: error_body, headers: %{}}}
+      end)
+
+      assert {:error, %Error{code: "test_code"}} = Client.get(client, "/v1/project")
+    end
+
+    test "extracts error code from top-level" do
+      client = Client.new()
+      error_body = %{"message" => "Error", "code" => "top_level_code"}
+
+      expect(Req, :request, fn _client, _opts ->
+        {:ok, %Req.Response{status: 400, body: error_body, headers: %{}}}
+      end)
+
+      assert {:error, %Error{code: "top_level_code"}} = Client.get(client, "/v1/project")
+    end
+
+    test "handles retry-after header with non-list value" do
+      client = Client.new()
+
+      expect(Req, :request, fn _client, _opts ->
+        {:ok,
+         %Req.Response{
+           status: 429,
+           body: %{"error" => "Rate limited"},
+           headers: %{"retry-after" => "5"}
+         }}
+      end)
+
+      assert {:error, %Error{type: :rate_limit, retry_after: nil}} =
+               Client.get(client, "/v1/project")
+    end
+
+    test "handles retry-after header with empty list" do
+      client = Client.new()
+
+      expect(Req, :request, fn _client, _opts ->
+        {:ok,
+         %Req.Response{
+           status: 429,
+           body: %{"error" => "Rate limited"},
+           headers: %{"retry-after" => []}
+         }}
+      end)
+
+      assert {:error, %Error{type: :rate_limit, retry_after: nil}} =
+               Client.get(client, "/v1/project")
+    end
+
+    test "handles non-map headers" do
+      client = Client.new()
+
+      expect(Req, :request, fn _client, _opts ->
+        {:ok, %Req.Response{status: 429, body: %{"error" => "Rate limited"}, headers: []}}
+      end)
+
+      assert {:error, %Error{type: :rate_limit, retry_after: nil}} =
+               Client.get(client, "/v1/project")
+    end
+  end
+
+  describe "status code handling" do
+    test "handles 408 Request Timeout" do
+      client = Client.new()
+
+      expect(Req, :request, fn _client, _opts ->
+        {:ok, %Req.Response{status: 408, body: %{"error" => "Timeout"}, headers: %{}}}
+      end)
+
+      # 408 is not explicitly mapped, so falls through to :bad_request
+      assert {:error, %Error{type: :bad_request, status: 408}} = Client.get(client, "/v1/project")
+    end
+
+    test "handles 409 Conflict" do
+      client = Client.new()
+
+      expect(Req, :request, fn _client, _opts ->
+        {:ok, %Req.Response{status: 409, body: %{"error" => "Conflict"}, headers: %{}}}
+      end)
+
+      assert {:error, %Error{type: :conflict}} = Client.get(client, "/v1/project")
+    end
+
+    test "handles 401 Unauthorized" do
+      client = Client.new()
+
+      expect(Req, :request, fn _client, _opts ->
+        {:ok, %Req.Response{status: 401, body: %{"error" => "Unauthorized"}, headers: %{}}}
+      end)
+
+      assert {:error, %Error{type: :authentication}} = Client.get(client, "/v1/project")
+    end
+
+    test "handles 422 Unprocessable Entity" do
+      client = Client.new()
+
+      expect(Req, :request, fn _client, _opts ->
+        {:ok,
+         %Req.Response{
+           status: 422,
+           body: %{"error" => "Validation failed"},
+           headers: %{}
+         }}
+      end)
+
+      assert {:error, %Error{type: :unprocessable_entity}} = Client.get(client, "/v1/project")
+    end
+  end
 end

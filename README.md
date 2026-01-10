@@ -87,21 +87,34 @@ Run evaluations and track results:
 
 ```elixir
 # Create an experiment
-{:ok, experiment} = Braintrust.Experiment.create(project_id, %{name: "baseline-v1"})
-
-# Insert experiment events
-{:ok, _} = Braintrust.Experiment.insert(experiment_id, %{
-  events: [
-    %{
-      input: %{question: "What is 2+2?"},
-      output: "4",
-      scores: %{accuracy: 1.0}
-    }
-  ]
+{:ok, experiment} = Braintrust.Experiment.create(%{
+  project_id: "proj_123",
+  name: "gpt4-baseline"
 })
 
-# Get experiment summary with scores
-{:ok, summary} = Braintrust.Experiment.summarize(experiment_id)
+# Insert evaluation events
+{:ok, _} = Braintrust.Experiment.insert(experiment.id, [
+  %{
+    input: %{messages: [%{role: "user", content: "What is 2+2?"}]},
+    output: "4",
+    expected: "4",
+    scores: %{accuracy: 1.0},
+    metadata: %{model: "gpt-4"}
+  }
+])
+
+# Get experiment summary
+{:ok, summary} = Braintrust.Experiment.summarize(experiment.id)
+
+# Stream through all events
+Braintrust.Experiment.fetch_stream(experiment.id)
+|> Stream.each(&process_event/1)
+|> Stream.run()
+
+# Add feedback to events
+{:ok, _} = Braintrust.Experiment.feedback(experiment.id, [
+  %{id: "event_123", scores: %{human_rating: 0.9}, comment: "Good response"}
+])
 ```
 
 ### Datasets
@@ -177,7 +190,7 @@ end
 | Resource | Endpoint | Status |
 |----------|----------|--------|
 | Projects | `/v1/project` | ✅ Implemented |
-| Experiments | `/v1/experiment` | 🚧 Planned |
+| Experiments | `/v1/experiment` | ✅ Implemented |
 | Datasets | `/v1/dataset` | 🚧 Planned |
 | Logs | `/v1/project_logs` | 🚧 Planned |
 | Prompts | `/v1/prompt` | 🚧 Planned |

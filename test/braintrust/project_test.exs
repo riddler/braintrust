@@ -2,6 +2,8 @@ defmodule Braintrust.ProjectTest do
   use ExUnit.Case, async: true
   use Mimic
 
+  import Braintrust.TestHelpers
+
   alias Braintrust.{Config, Error, Project}
 
   setup do
@@ -28,19 +30,8 @@ defmodule Braintrust.ProjectTest do
         ]
       }
 
-      {:ok, agent} = Agent.start_link(fn -> 0 end)
-
-      stub(Req, :request, fn _client, _opts ->
-        page = Agent.get_and_update(agent, fn n -> {n, n + 1} end)
-
-        case page do
-          0 ->
-            {:ok, %Req.Response{status: 200, body: response, headers: []}}
-
-          _page ->
-            {:ok, %Req.Response{status: 200, body: %{"objects" => []}, headers: []}}
-        end
-      end)
+      {:ok, agent} = start_pagination_agent()
+      stub(Req, :request, paginated_stub(agent, response))
 
       assert {:ok, projects} = Project.list()
       assert length(projects) == 2
@@ -50,7 +41,7 @@ defmodule Braintrust.ProjectTest do
     end
 
     test "passes query parameters" do
-      {:ok, agent} = Agent.start_link(fn -> 0 end)
+      {:ok, agent} = start_pagination_agent()
 
       stub(Req, :request, fn _client, opts ->
         page = Agent.get_and_update(agent, fn n -> {n, n + 1} end)
@@ -83,24 +74,10 @@ defmodule Braintrust.ProjectTest do
 
   describe "stream/1" do
     test "returns a stream of project structs" do
-      {:ok, agent} = Agent.start_link(fn -> 0 end)
+      response = %{"objects" => [%{"id" => "proj_1", "name" => "p1", "org_id" => "org"}]}
 
-      stub(Req, :request, fn _client, _opts ->
-        page = Agent.get_and_update(agent, fn n -> {n, n + 1} end)
-
-        case page do
-          0 ->
-            {:ok,
-             %Req.Response{
-               status: 200,
-               body: %{"objects" => [%{"id" => "proj_1", "name" => "p1", "org_id" => "org"}]},
-               headers: []
-             }}
-
-          _page ->
-            {:ok, %Req.Response{status: 200, body: %{"objects" => []}, headers: []}}
-        end
-      end)
+      {:ok, agent} = start_pagination_agent()
+      stub(Req, :request, paginated_stub(agent, response))
 
       projects = Project.stream() |> Enum.to_list()
       assert [%Project{id: "proj_1"}] = projects
