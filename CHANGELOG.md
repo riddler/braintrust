@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `BRAINTRUST_API_URL` environment variable support for self-hosted deployments (#28)
+  - Allows configuring `base_url` via environment variable, similar to `BRAINTRUST_API_KEY`
+  - Configuration precedence: runtime opts > process config > app config > env var > default
+
 ## [0.2.0] - 2025-01-10
 
 ### Added
