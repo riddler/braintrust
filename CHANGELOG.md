@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2025-01-12
+
 ### Added
 - `BRAINTRUST_API_URL` environment variable support for self-hosted deployments (#28)
   - Allows configuring `base_url` via environment variable, similar to `BRAINTRUST_API_KEY`
@@ -134,7 +136,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial placeholder release to reserve package name on hex.pm
 - Basic project structure
 
-[Unreleased]: https://github.com/riddler/braintrust/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/riddler/braintrust/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/riddler/braintrust/releases/tag/v0.3.0
 [0.2.0]: https://github.com/riddler/braintrust/releases/tag/v0.2.0
 [0.1.0]: https://github.com/riddler/braintrust/releases/tag/v0.1.0
 [0.0.1]: https://github.com/riddler/braintrust/releases/tag/v0.0.1
