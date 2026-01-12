@@ -14,7 +14,7 @@ defmodule Braintrust.Config do
   | Option | Type | Default | Description |
   |--------|------|---------|-------------|
   | `:api_key` | string | `BRAINTRUST_API_KEY` env | API key for authentication |
-  | `:base_url` | string | `https://api.braintrust.dev` | Base URL for API |
+  | `:base_url` | string | `BRAINTRUST_API_URL` env or `https://api.braintrust.dev` | Base URL for API |
   | `:timeout` | integer | `60_000` | Request timeout in ms |
   | `:max_retries` | integer | `2` | Maximum retry attempts |
 
@@ -55,7 +55,7 @@ defmodule Braintrust.Config do
   1. Runtime options (if provided)
   2. Process dictionary
   3. Application config
-  4. Environment variable (for `:api_key` only)
+  4. Environment variable (for `:api_key` and `:base_url`)
   5. Default value
 
   ## Examples
@@ -84,6 +84,7 @@ defmodule Braintrust.Config do
     opts[:base_url] ||
       Process.get(:braintrust_base_url) ||
       Application.get_env(:braintrust, :base_url) ||
+      System.get_env("BRAINTRUST_API_URL") ||
       @default_base_url
   end
 

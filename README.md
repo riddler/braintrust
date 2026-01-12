@@ -36,6 +36,23 @@ Braintrust.configure(api_key: "sk-xxx")
 
 API keys can be created at [braintrust.dev/app/settings](https://www.braintrust.dev/app/settings?subroute=api-keys).
 
+### Self-Hosted Deployments
+
+For self-hosted Braintrust instances, set the API URL via environment variable:
+
+```bash
+export BRAINTRUST_API_KEY="sk-your-api-key"
+export BRAINTRUST_API_URL="https://braintrust.your-company.com"
+```
+
+Or configure in your application:
+
+```elixir
+config :braintrust,
+  api_key: System.get_env("BRAINTRUST_API_KEY"),
+  base_url: "https://braintrust.your-company.com"
+```
+
 ## Usage
 
 ### Projects

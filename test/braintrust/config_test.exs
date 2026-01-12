@@ -5,8 +5,9 @@ defmodule Braintrust.ConfigTest do
   alias Braintrust.Config
 
   setup do
-    # Store original env var
+    # Store original env vars
     original_api_key = System.get_env("BRAINTRUST_API_KEY")
+    original_api_url = System.get_env("BRAINTRUST_API_URL")
 
     # Clean up any process-level config
     Config.clear()
@@ -15,13 +16,18 @@ defmodule Braintrust.ConfigTest do
     Application.delete_env(:braintrust, :base_url)
     Application.delete_env(:braintrust, :timeout)
     Application.delete_env(:braintrust, :max_retries)
-    # Clear env var for tests
+    # Clear env vars for tests
     System.delete_env("BRAINTRUST_API_KEY")
+    System.delete_env("BRAINTRUST_API_URL")
 
     on_exit(fn ->
-      # Restore original env var
+      # Restore original env vars
       if original_api_key do
         System.put_env("BRAINTRUST_API_KEY", original_api_key)
+      end
+
+      if original_api_url do
+        System.put_env("BRAINTRUST_API_URL", original_api_url)
       end
     end)
 
@@ -59,6 +65,19 @@ defmodule Braintrust.ConfigTest do
       Application.put_env(:braintrust, :timeout, 15_000)
 
       assert Config.get(:timeout) == 15_000
+    end
+
+    test "env var takes precedence over default for base_url" do
+      System.put_env("BRAINTRUST_API_URL", "https://self-hosted.example.com")
+
+      assert Config.get(:base_url) == "https://self-hosted.example.com"
+    end
+
+    test "app config takes precedence over env var for base_url" do
+      System.put_env("BRAINTRUST_API_URL", "https://env.example.com")
+      Application.put_env(:braintrust, :base_url, "https://app.example.com")
+
+      assert Config.get(:base_url) == "https://app.example.com"
     end
   end
 
