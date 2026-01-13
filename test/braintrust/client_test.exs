@@ -432,6 +432,69 @@ defmodule Braintrust.ClientTest do
       assert {:error, %Error{type: :rate_limit, retry_after: nil}} =
                Client.get(client, "/v1/project")
     end
+
+    test "handles Braintrust API capitalized error format" do
+      client = Client.new()
+
+      error_body = %{
+        "Code" => "BadRequestError",
+        "Message" => "Invalid request",
+        "InternalTraceId" => "69650f5e0000000055ad2d541d3095d5",
+        "Path" => "/v1/function",
+        "Service" => "api"
+      }
+
+      expect(Req, :request, fn _client, _opts ->
+        {:ok, %Req.Response{status: 400, body: error_body, headers: %{}}}
+      end)
+
+      assert {:error,
+              %Error{
+                type: :bad_request,
+                message: "Invalid request",
+                code: "BadRequestError",
+                trace_id: "69650f5e0000000055ad2d541d3095d5",
+                path: "/v1/function",
+                raw_body: ^error_body
+              }} = Client.get(client, "/v1/project")
+    end
+
+    test "extracts trace_id and path from error body" do
+      client = Client.new()
+
+      error_body = %{
+        "Message" => "Something went wrong",
+        "InternalTraceId" => "trace123",
+        "Path" => "/v1/test"
+      }
+
+      expect(Req, :request, fn _client, _opts ->
+        {:ok, %Req.Response{status: 500, body: error_body, headers: %{}}}
+      end)
+
+      assert {:error,
+              %Error{
+                trace_id: "trace123",
+                path: "/v1/test",
+                raw_body: ^error_body
+              }} = Client.get(client, "/v1/project")
+    end
+
+    test "handles error without trace_id or path" do
+      client = Client.new()
+      error_body = %{"message" => "Simple error"}
+
+      expect(Req, :request, fn _client, _opts ->
+        {:ok, %Req.Response{status: 400, body: error_body, headers: %{}}}
+      end)
+
+      assert {:error,
+              %Error{
+                trace_id: nil,
+                path: nil,
+                raw_body: ^error_body
+              }} = Client.get(client, "/v1/project")
+    end
   end
 
   describe "status code handling" do

@@ -376,7 +376,10 @@ defmodule Braintrust.DatasetTest do
                   message: "Server error",
                   code: nil,
                   status: 500,
-                  retry_after: nil
+                  retry_after: nil,
+                  raw_body: %{"error" => "Server error"},
+                  trace_id: nil,
+                  path: nil
                 }}
 
       Agent.stop(agent)
