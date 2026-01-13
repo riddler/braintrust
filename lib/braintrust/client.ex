@@ -229,17 +229,26 @@ defmodule Braintrust.Client do
     message = extract_message(body)
     code = extract_code(body)
     retry_after = extract_retry_after(headers)
+    trace_id = extract_trace_id(body)
+    path = extract_path(body)
 
     Error.new(type, message,
       status: status,
       code: code,
-      retry_after: retry_after
+      retry_after: retry_after,
+      raw_body: body,
+      trace_id: trace_id,
+      path: path
     )
   end
 
   defp extract_message(body) when is_map(body) do
     # Braintrust error format: {"error": {"message": "...", "type": "...", "code": "..."}}
     cond do
+      # Braintrust API format: {"Code": "...", "Message": "..."}
+      is_binary(body["Message"]) ->
+        body["Message"]
+
       # Nested error object with message
       is_map(body["error"]) and is_binary(body["error"]["message"]) ->
         body["error"]["message"]
@@ -261,10 +270,13 @@ defmodule Braintrust.Client do
   defp extract_message(_body), do: "Request failed"
 
   defp extract_code(body) when is_map(body) do
-    if is_map(body["error"]) do
-      body["error"]["code"]
-    else
-      body["code"]
+    cond do
+      # Braintrust API format: {"Code": "..."}
+      is_binary(body["Code"]) -> body["Code"]
+      # Nested error object
+      is_map(body["error"]) -> body["error"]["code"]
+      # Simple code field
+      true -> body["code"]
     end
   end
 
@@ -284,6 +296,12 @@ defmodule Braintrust.Client do
   end
 
   defp extract_retry_after(_headers), do: nil
+
+  defp extract_trace_id(body) when is_map(body), do: body["InternalTraceId"]
+  defp extract_trace_id(_body), do: nil
+
+  defp extract_path(body) when is_map(body), do: body["Path"]
+  defp extract_path(_body), do: nil
 
   defp retry_policy(_request, response_or_error) do
     case response_or_error do

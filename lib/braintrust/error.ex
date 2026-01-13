@@ -56,10 +56,13 @@ defmodule Braintrust.Error do
           message: String.t(),
           code: String.t() | nil,
           status: pos_integer() | nil,
-          retry_after: pos_integer() | nil
+          retry_after: pos_integer() | nil,
+          raw_body: map() | String.t() | nil,
+          trace_id: String.t() | nil,
+          path: String.t() | nil
         }
 
-  defstruct [:type, :message, :code, :status, :retry_after]
+  defstruct [:type, :message, :code, :status, :retry_after, :raw_body, :trace_id, :path]
 
   @doc """
   Creates a new error struct.
@@ -84,7 +87,10 @@ defmodule Braintrust.Error do
       message: message,
       code: opts[:code],
       status: opts[:status],
-      retry_after: opts[:retry_after]
+      retry_after: opts[:retry_after],
+      raw_body: opts[:raw_body],
+      trace_id: opts[:trace_id],
+      path: opts[:path]
     }
   end
 

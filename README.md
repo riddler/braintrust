@@ -242,7 +242,11 @@ Manage tools, scorers, and callable functions:
   function_data: %{
     type: "code",
     data: %{
-      runtime: "node",
+      type: "inline",
+      runtime_context: %{
+        runtime: "node",
+        version: "20"
+      },
       code: "export default async function({ input, output, expected }) {
         // Scoring logic here
         return { score: 0.9 };

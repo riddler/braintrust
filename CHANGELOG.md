@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Debugging fields to `Braintrust.Error` struct for better error diagnosis (#31)
+  - `raw_body`: Full error response body for inspection
+  - `trace_id`: Internal trace ID from Braintrust API (`InternalTraceId` field)
+  - `path`: API path that failed (`Path` field)
+
+### Changed
+- Updated README Function example to use correct `function_data` structure for code-based scorers (#31)
+  - Now includes required `type: "inline"` and `runtime_context` fields
+  - Matches actual Braintrust API requirements
+
+### Fixed
+- Error message extraction now handles Braintrust API's capitalized field names (#31)
+  - Extracts `"Message"` and `"Code"` fields from API error responses
+  - Previously returned generic "Request failed" message instead of actual error details
+
 ## [0.3.0] - 2025-01-12
 
 ### Added
